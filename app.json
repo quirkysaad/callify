@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "sleek-dialer",
-    "slug": "sleek-dialer",
-    "scheme": "sleek-dialer",
+    "name": "Callify",
+    "slug": "callify",
+    "scheme": "callify",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,11 +18,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.sleekdialer",
+      "package": "com.anonymous.callify",
       "permissions": ["android.permission.READ_CALL_LOG", "android.permission.READ_PHONE_STATE"]
     },
     "web": {

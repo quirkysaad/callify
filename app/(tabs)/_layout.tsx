@@ -1,20 +1,50 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs } from "expo-router";
+import theme from "../../utils/theme";
 
 const TabLayout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#edc323",
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.background,
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+          height: 75,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+        },
+        sceneStyle: {
+          backgroundColor: theme.colors.background,
+        },
+        headerShown: false,
+        freezeOnBlur: true,
+        animation: "none",
       }}
     >
       <Tabs.Screen
+        name="keypad"
+        options={{
+          title: "Keypad",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome size={24} name="th" color={color} />
+          ),
+
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          headerShown: false,
+          title: "Recents",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="phone" color={color} />
+            <FontAwesome size={24} name="clock-o" color={color} />
           ),
         }}
       />
@@ -22,9 +52,8 @@ const TabLayout = () => {
         name="contacts"
         options={{
           title: "Contacts",
-          headerShown: false,
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="address-book-o" color={color} />
+            <FontAwesome size={24} name="user" color={color} />
           ),
         }}
       />

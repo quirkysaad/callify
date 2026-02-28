@@ -1,64 +1,93 @@
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, SectionList } from "react-native";
-import { CallLogsModule } from "../../modules/dialer-module";
-import { CallLogProps, CallSectionProps, CallTypes } from "../../types";
-import { groupCallsByDate } from "../../utils/general-utils";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, SectionList, TouchableOpacity, ActivityIndicator } from "react-native";
 import CallLog from "../../components/CallLog";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useRecents } from "../../utils/AppProviders";
+import { loadSpamNumbers } from "../../utils/spam";
+import theme from "../../utils/theme";
+import Animated, { FadeInUp } from "react-native-reanimated";
 
-// This screen contains dialpad and logs
 const Home = () => {
-  const [callLogs, setCallLogs] = useState<Array<CallSectionProps>>();
+  const { sections, loading, loadMore, hasMore } = useRecents();
+  const [spamUpdated, setSpamUpdated] = useState(0);
 
   useEffect(() => {
-    // Get the call logs
-    (async () => {
-      try {
-        const granted = await CallLogsModule.requestCallLogPermission();
-
-        if (granted) {
-          const logs =
-            (await CallLogsModule.getCallLogs()) as Array<CallLogProps>;
-
-          const groupedCallLogs = groupCallsByDate(logs);
-          setCallLogs(groupedCallLogs);
-
-          console.log("Call Logs: ====", logs.slice(0, 5));
-        } else {
-          console.log("Permission denied by user");
-        }
-      } catch (e) {
-        console.log("Error:", e);
-      }
-    })();
+    loadSpamNumbers().then(() => setSpamUpdated((prev) => prev + 1));
   }, []);
 
+  const handleSpamStatusChanged = useCallback(() => {
+    setSpamUpdated((prev) => prev + 1);
+  }, []);
+
+  const renderFooter = useCallback(() => {
+    if (!hasMore) return null;
+    return (
+      <View className="py-5 items-center">
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+      </View>
+    );
+  }, [hasMore]);
+
   return (
-    <View>
-      {callLogs && callLogs.length > 0 ? (
-        <SectionList
-          className="bg-background px-2"
-          sections={callLogs}
-          renderItem={({ section, item, index }) => (
-            <CallLog
-              key={index}
-              logItem={item}
-              logIndex={index}
-              isLastLogOfSection={index === section.data.length - 1}
-            />
-          )}
-          renderSectionHeader={({ section }) => (
-            <View className="mx-5 mt-4 mb-2">
-              <Text className="text-textMuted font-semibold text-lg">
-                {section.title}
-              </Text>
-            </View>
-          )}
-        />
-      ) : (
-        <Text>Logs not found</Text>
-      )}
-    </View>
+    <>
+      <View className="flex-row justify-between items-center px-6 pt-4 pb-2">
+        <Text className="text-[28px] font-bold text-textPrimary tracking-[-0.5px]">
+          {"Recents"}
+        </Text>
+        <View className="flex-row gap-4">
+          <TouchableOpacity>
+            <FontAwesome name="search" size={22} color={theme.colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <FontAwesome name="ellipsis-v" size={22} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View className="flex-1 pt-2">
+        {loading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : sections.length > 0 ? (
+          <SectionList
+            className="bg-background px-2"
+            sections={sections}
+            stickySectionHeadersEnabled={false}
+            renderItem={({ section, item, index }) => (
+              <Animated.View entering={FadeInUp.delay(index * 50).springify()}>
+                <CallLog
+                  key={`${index}-${spamUpdated}`}
+                  logItem={item}
+                  logIndex={index}
+                  isLastLogOfSection={index === section.data.length - 1}
+                  onSpamStatusChanged={handleSpamStatusChanged}
+                />
+              </Animated.View>
+            )}
+            renderSectionHeader={({ section }) => (
+              <View className="mx-5 mt-6 mb-2">
+                <Text className="text-textSecondary font-semibold text-[13px] uppercase tracking-[0.5px]">
+                  {section.title}
+                </Text>
+              </View>
+            )}
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
+          />
+        ) : (
+          <View className="flex-1 items-center justify-center">
+            <FontAwesome name="clock-o" size={48} color={theme.colors.border} />
+            <Text className="text-textSecondary text-[17px] mt-4 font-medium">
+              {"No recent calls"}
+            </Text>
+          </View>
+        )}
+      </View>
+    </>
   );
 };
 
-export default Home;
+export default React.memo(Home);
