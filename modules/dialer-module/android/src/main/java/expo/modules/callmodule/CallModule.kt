@@ -58,6 +58,7 @@ class CallModule : Module() {
       val cursor = context.contentResolver.query(
         CallLog.Calls.CONTENT_URI,
         arrayOf(
+          CallLog.Calls._ID,
           CallLog.Calls.NUMBER,
           CallLog.Calls.CACHED_NAME,
           CallLog.Calls.TYPE,
@@ -70,6 +71,7 @@ class CallModule : Module() {
       )
 
       cursor?.use {
+        val idIndex = it.getColumnIndex(CallLog.Calls._ID)
         val numberIndex = it.getColumnIndex(CallLog.Calls.NUMBER)
         val nameIndex = it.getColumnIndex(CallLog.Calls.CACHED_NAME)
         val typeIndex = it.getColumnIndex(CallLog.Calls.TYPE)
@@ -85,6 +87,7 @@ class CallModule : Module() {
         // Read limit entries
         var count = 0
         while (it.moveToNext() && count < limit) {
+          val id = it.getString(idIndex) ?: ""
           val number = it.getString(numberIndex) ?: "Unknown"
           val type = when (it.getInt(typeIndex)) {
             CallLog.Calls.INCOMING_TYPE -> "INCOMING"
@@ -99,6 +102,7 @@ class CallModule : Module() {
 
           callLogs.add(
             mapOf(
+              "id" to id,
               "number" to number,
               "name" to name,
               "type" to type,
@@ -112,6 +116,37 @@ class CallModule : Module() {
         val hasMore = it.moveToNext()
         promise.resolve(mapOf("logs" to callLogs, "hasMore" to hasMore))
       } ?: promise.resolve(mapOf("logs" to callLogs, "hasMore" to false))
+    }
+
+    // Delete Call Log entry by its ID
+    AsyncFunction("deleteCallLog") { id: String, promise: Promise ->
+      val context = appContext.reactContext ?: return@AsyncFunction promise.reject(
+        "NO_CONTEXT",
+        "No React context available", null
+      )
+
+      val permission = android.Manifest.permission.WRITE_CALL_LOG
+      if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+        val activity = appContext.currentActivity
+        if (activity != null) {
+          ActivityCompat.requestPermissions(activity, arrayOf(permission), 324)
+        }
+        promise.resolve(false)
+        return@AsyncFunction
+      }
+
+      try {
+        val deletedCount = context.contentResolver.delete(
+            CallLog.Calls.CONTENT_URI,
+            "${CallLog.Calls._ID} = ?",
+            arrayOf(id)
+        )
+        promise.resolve(deletedCount > 0)
+      } catch (e: SecurityException) {
+        promise.reject("SECURITY_ERROR", "Permission to write to call log denied", e)
+      } catch (e: Exception) {
+        promise.reject("DELETE_ERROR", "Failed to delete call log", e)
+      }
     }
 
     // Place call via TelecomManager so our InCallService handles it (no redirect to default dialer)
@@ -136,12 +171,15 @@ class CallModule : Module() {
 
       try {
         val telecomManager = activity.getSystemService(android.content.Context.TELECOM_SERVICE) as TelecomManager
-        val uri = android.net.Uri.fromParts("tel", phoneNumber, null)
+        val sanitizedNumber = phoneNumber.replace(Regex("[^0-9+*#]"), "")
+        val uri = android.net.Uri.fromParts("tel", sanitizedNumber, null)
         val extras = Bundle()
         telecomManager.placeCall(uri, extras)
         promise.resolve(true)
+      } catch (e: SecurityException) {
+        promise.reject("CALL_SECURITY_FAILED", e.message ?: "Security Exception", e)
       } catch (e: Exception) {
-        promise.reject("CALL_FAILED", e.message, e)
+        promise.reject("CALL_FAILED", e.message ?: "Unknown error", e)
       }
     }
 
@@ -215,11 +253,13 @@ class CallModule : Module() {
       val call = CallManager.activeCall ?: return@Function null
       val details = call.details ?: return@Function null
       val number = details.handle?.schemeSpecificPart ?: "Unknown"
+      val name = details.callerDisplayName ?: ""
       val state = call.state
       val isMuted = CallManager.isMuted()
       val audioRoute = CallManager.getAudioRoute()
       return@Function mapOf(
         "number" to number,
+        "name" to name,
         "state" to state,
         "isMuted" to isMuted,
         "audioRoute" to audioRoute
@@ -235,6 +275,9 @@ class CallModule : Module() {
            statusMap["state"] = call.state
            call.details?.handle?.schemeSpecificPart?.let {
               statusMap["number"] = it
+           }
+           call.details?.callerDisplayName?.let {
+              statusMap["name"] = it
            }
            sendEvent("onCallStateChanged", statusMap)
         }

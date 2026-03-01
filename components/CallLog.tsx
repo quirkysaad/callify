@@ -6,12 +6,13 @@ import MaterialIcons, {
 import ReanimatedSwipeable, {
   SwipeableMethods,
 } from "react-native-gesture-handler/ReanimatedSwipeable";
-import Reanimated from "react-native-reanimated";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
 import { CallLogsModule } from "../modules/dialer-module";
 import { CallSectionProps, CallTypes } from "../types";
-import { isSpamSync, markAsSpam, unmarkSpam } from "../utils/spam";
 import { Alert } from "react-native";
+import { useRecents } from "../utils/AppProviders";
 import theme from "../utils/theme";
+import clsx from "clsx";
 
 interface CallLogItemProps {
   logIndex: number;
@@ -45,9 +46,9 @@ const CallLog = ({
   logItem,
   logIndex,
   isLastLogOfSection,
-  onSpamStatusChanged,
-}: CallLogItemProps & { onSpamStatusChanged?: () => void }) => {
+}: CallLogItemProps) => {
   const swipeRef = useRef<SwipeableMethods>(null);
+  const { refresh } = useRecents();
 
   const iconData = IconMap[logItem.type as keyof typeof IconMap] || {
     iconName: "phone" as MaterialIconsIconName,
@@ -67,32 +68,33 @@ const CallLog = ({
   }, [logItem.number]);
 
   const handleLongPress = useCallback(() => {
-    if (!logItem.number || logItem.number === "Unknown") return;
-
-    const spam = isSpamSync(logItem.number);
+    if (!logItem.id) return;
     Alert.alert(
-      spam ? "Unmark Spam" : "Mark as Spam",
-      `Do you want to ${spam ? "unmark" : "mark"} ${logItem.number} as spam?`,
+      "Delete Call Log",
+      "Are you sure you want to delete this call log?",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: spam ? "Unmark" : "Mark Spam",
-          style: spam ? "default" : "destructive",
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
-            if (spam) {
-              await unmarkSpam(logItem.number!);
-            } else {
-              await markAsSpam(logItem.number!);
-            }
-            onSpamStatusChanged?.();
-          }
-        }
-      ]
+            await CallLogsModule.deleteCallLog(logItem.id!);
+            refresh();
+          },
+        },
+      ],
     );
-  }, [logItem.number, onSpamStatusChanged]);
+  }, [logItem.id, refresh]);
 
   const duration = formatDuration(logItem.duration);
-  const isSpam = logItem.number && logItem.number !== "Unknown" ? isSpamSync(logItem.number) : false;
+  const timestamp = new Date(logItem.date).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  const displayName =
+    logItem.name && logItem.name !== "Unknown" ? logItem.name : logItem.number;
 
   return (
     <ReanimatedSwipeable
@@ -127,26 +129,19 @@ const CallLog = ({
     >
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={handleCall}
         onLongPress={handleLongPress}
-        className="flex-row items-center bg-background px-4 py-[14px] mx-2"
-        style={{
-          borderBottomWidth: isLastLogOfSection ? 0 : 0.5,
-          borderBottomColor: theme.colors.border,
-          borderTopLeftRadius: logIndex === 0 ? 20 : 0,
-          borderTopRightRadius: logIndex === 0 ? 20 : 0,
-          borderBottomLeftRadius: isLastLogOfSection ? 20 : 0,
-          borderBottomRightRadius: isLastLogOfSection ? 20 : 0,
-        }}
+        className={clsx(
+          "flex-row items-center bg-card px-4 py-[14px] mx-2 border-b-border",
+          logIndex === 0 && "rounded-t-2xl",
+          isLastLogOfSection ? "rounded-b-2xl border-b-0" : "border-b",
+        )}
       >
-        <View
-          className="w-11 h-11 rounded-full justify-center items-center mr-[14px]"
-        >
-          {isSpam ? (
-            <MaterialIcons name="report" color={theme.colors.danger} size={22} />
-          ) : (
-            <MaterialIcons name={iconData.iconName} color={iconData.color} size={22} />
-          )}
+        <View className="w-11 h-11 rounded-full justify-center items-center mr-[14px]">
+          <MaterialIcons
+            name={iconData.iconName}
+            color={iconData.color}
+            size={22}
+          />
         </View>
         <View className="flex-1">
           <View className="flex-row items-center gap-[6px]">
@@ -155,16 +150,21 @@ const CallLog = ({
               style={{
                 fontSize: 17,
                 fontWeight: "500",
-                color: isSpam ? theme.colors.danger : logItem.type === "MISSED" ? theme.colors.danger : theme.colors.textPrimary,
+                color:
+                  logItem.type === "MISSED"
+                    ? theme.colors.danger
+                    : theme.colors.textPrimary,
               }}
               numberOfLines={1}
             >
-              {logItem.name && logItem.name !== "Unknown" ? logItem.name : logItem.number}
+              {displayName}
             </Text>
-            {isSpam && <Text className="text-[11px] font-semibold" style={{ color: theme.colors.danger }}>SPAM</Text>}
           </View>
           <View className="flex-row items-center mt-[3px]">
-            <Text className="text-[13px]" style={{ color: theme.colors.textSecondary }}>
+            <Text
+              className="text-[13px]"
+              style={{ color: theme.colors.textSecondary }}
+            >
               {logItem.type === "INCOMING"
                 ? "Incoming"
                 : logItem.type === "OUTGOING"
@@ -173,8 +173,18 @@ const CallLog = ({
                     ? "Missed"
                     : "Rejected"}
             </Text>
+            <Text
+              className="text-[13px]"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              {" \u00B7 "}
+              {timestamp}
+            </Text>
             {duration ? (
-              <Text className="text-[13px]" style={{ color: theme.colors.textSecondary }}>
+              <Text
+                className="text-[13px]"
+                style={{ color: theme.colors.textSecondary }}
+              >
                 {" \u00B7 "}
                 {duration}
               </Text>
@@ -184,7 +194,15 @@ const CallLog = ({
         <TouchableOpacity
           onPress={handleCall}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={{ padding: 8, backgroundColor: theme.colors.primaryLight, borderRadius: 20, width: 40, height: 40, justifyContent: "center", alignItems: "center" }}
+          style={{
+            padding: 8,
+            backgroundColor: theme.colors.primaryLight,
+            borderRadius: 20,
+            width: 40,
+            height: 40,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
           <MaterialIcons name="call" color={theme.colors.primary} size={20} />
         </TouchableOpacity>
@@ -200,36 +218,51 @@ const ActionWrapper = ({
 }: ActionProps) => {
   return (
     <Reanimated.View
-      style={{
-        paddingHorizontal: 8,
-        width: "100%",
-        overflow: "hidden",
-        borderTopLeftRadius: logIndex === 0 ? 20 : 0,
-        borderTopRightRadius: logIndex === 0 ? 20 : 0,
-        borderBottomLeftRadius: isLastLogOfSection ? 20 : 0,
-        borderBottomRightRadius: isLastLogOfSection ? 20 : 0,
-      }}
+      className={clsx("px-2 w-full overflow-hidden", {
+        "rounded-t-2xl": logIndex === 0,
+        "rounded-b-2xl": isLastLogOfSection,
+      })}
     >
-      {direction === "right" ? <RightAction /> : <LeftAction />}
+      {direction === "right" ? (
+        <RightAction
+          className={clsx({
+            "rounded-t-2xl": logIndex === 0,
+            "rounded-b-2xl": isLastLogOfSection,
+          })}
+        />
+      ) : (
+        <LeftAction
+          className={clsx({
+            "rounded-t-2xl": logIndex === 0,
+            "rounded-b-2xl": isLastLogOfSection,
+          })}
+        />
+      )}
     </Reanimated.View>
   );
 };
 
-const RightAction = () => (
+const RightAction = ({ className }: { className: string }) => (
   <View
-    className="flex-row justify-end items-center gap-2 w-full h-full bg-primary px-4"
+    className={clsx(
+      className,
+      "flex-row justify-end items-center gap-2 w-full h-full bg-primary px-4",
+    )}
   >
-    <Text className="text-lg font-semibold" style={{ color: theme.colors.white }}>{"Message"}</Text>
+    <Text className="text-lg font-semibold text-white">{"Message"}</Text>
     <MaterialIcons name="message" size={22} color={theme.colors.white} />
   </View>
 );
 
-const LeftAction = () => (
+const LeftAction = ({ className }: { className: string }) => (
   <View
-    className="flex-row items-center gap-2 w-full h-full bg-success px-4"
+    className={clsx(
+      className,
+      "flex-row items-center gap-2 w-full h-full bg-success px-4",
+    )}
   >
     <MaterialIcons name="call" size={22} color={theme.colors.white} />
-    <Text className="text-lg font-semibold" style={{ color: theme.colors.white }}>{"Call"}</Text>
+    <Text className="text-lg font-semibold text-white">{"Call"}</Text>
   </View>
 );
 

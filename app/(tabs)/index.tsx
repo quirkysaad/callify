@@ -1,23 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import { View, Text, SectionList, TouchableOpacity, ActivityIndicator } from "react-native";
 import CallLog from "../../components/CallLog";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRecents } from "../../utils/AppProviders";
-import { loadSpamNumbers } from "../../utils/spam";
 import theme from "../../utils/theme";
-import Animated, { FadeInUp } from "react-native-reanimated";
 
 const Home = () => {
   const { sections, loading, loadMore, hasMore } = useRecents();
-  const [spamUpdated, setSpamUpdated] = useState(0);
-
-  useEffect(() => {
-    loadSpamNumbers().then(() => setSpamUpdated((prev) => prev + 1));
-  }, []);
-
-  const handleSpamStatusChanged = useCallback(() => {
-    setSpamUpdated((prev) => prev + 1);
-  }, []);
 
   const renderFooter = useCallback(() => {
     if (!hasMore) return null;
@@ -53,17 +42,14 @@ const Home = () => {
           <SectionList
             className="bg-background px-2"
             sections={sections}
+            keyExtractor={(item, index) => item.id || index.toString()}
             stickySectionHeadersEnabled={false}
             renderItem={({ section, item, index }) => (
-              <Animated.View entering={FadeInUp.delay(index * 50).springify()}>
-                <CallLog
-                  key={`${index}-${spamUpdated}`}
-                  logItem={item}
-                  logIndex={index}
-                  isLastLogOfSection={index === section.data.length - 1}
-                  onSpamStatusChanged={handleSpamStatusChanged}
-                />
-              </Animated.View>
+              <CallLog
+                logItem={item}
+                logIndex={index}
+                isLastLogOfSection={index === section.data.length - 1}
+              />
             )}
             renderSectionHeader={({ section }) => (
               <View className="mx-5 mt-6 mb-2">

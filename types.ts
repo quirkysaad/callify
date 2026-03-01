@@ -1,6 +1,7 @@
 export type CallTypes = 'INCOMING' | 'OUTGOING' | 'MISSED' | 'REJECTED' | 'UNKNOWN';
 
 export type CallLogProps = {
+    id: string;
     date: number;
     duration: number; // in seconds
     name?: string;

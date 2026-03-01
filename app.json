@@ -23,7 +23,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.callify",
-      "permissions": ["android.permission.READ_CALL_LOG", "android.permission.READ_PHONE_STATE"]
+      "permissions": ["android.permission.READ_CALL_LOG", "android.permission.WRITE_CALL_LOG", "android.permission.READ_PHONE_STATE", "android.permission.CALL_PHONE", "android.permission.MANAGE_OWN_CALLS"]
     },
     "web": {
       "bundler": "metro",

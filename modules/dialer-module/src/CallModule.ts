@@ -3,6 +3,7 @@ import { NativeModule, requireNativeModule } from 'expo';
 declare class CallModule extends NativeModule {
   requestCallLogPermission(): Promise<boolean>;
   getCallLogs(limit: number, offset: number): Promise<{ logs: any[]; hasMore: boolean }>;
+  deleteCallLog(id: string): Promise<boolean>;
   makeCall(phoneNumber: string): Promise<boolean>;
   requestDefaultDialer(): Promise<boolean>;
   answerCall(): void;
