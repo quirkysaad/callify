@@ -153,7 +153,7 @@ const CallScreen = () => {
                 )}
 
 
-                <Animated.View entering={FadeInDown.delay(100).duration(300)} className="flex-row justify-evenly px-[30px] mb-5">
+                {!isRinging && (<Animated.View entering={FadeInDown.delay(100).duration(300)} className="flex-row justify-evenly px-[30px] mb-5">
                     <ActionButton
                         icon="microphone-slash"
                         label="Mute"
@@ -172,7 +172,7 @@ const CallScreen = () => {
                         active={isSpeaker}
                         onPress={handleToggleSpeaker}
                     />
-                </Animated.View>
+                </Animated.View>)}
 
 
                 <Animated.View entering={FadeInDown.delay(500).duration(400)} className="px-10 pb-5">

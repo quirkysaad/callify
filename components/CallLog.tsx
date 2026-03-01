@@ -6,7 +6,15 @@ import MaterialIcons, {
 import ReanimatedSwipeable, {
   SwipeableMethods,
 } from "react-native-gesture-handler/ReanimatedSwipeable";
-import Reanimated, { FadeInDown } from "react-native-reanimated";
+import Reanimated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  interpolate,
+  Extrapolation,
+  SharedValue
+} from "react-native-reanimated";
 import { CallLogsModule } from "../modules/dialer-module";
 import { CallSectionProps, CallTypes } from "../types";
 import { Alert } from "react-native";
@@ -42,6 +50,16 @@ const formatDuration = (seconds: number): string => {
   return `${mins}m ${secs}s`;
 };
 
+const DragObserver = ({ drag, dragX }: { drag: SharedValue<number>; dragX: SharedValue<number> }) => {
+  useAnimatedReaction(
+    () => drag.value,
+    (val) => {
+      dragX.value = val;
+    }
+  );
+  return null;
+};
+
 const CallLog = ({
   logItem,
   logIndex,
@@ -49,6 +67,19 @@ const CallLog = ({
 }: CallLogItemProps) => {
   const swipeRef = useRef<SwipeableMethods>(null);
   const { refresh } = useRecents();
+
+  const dragX = useSharedValue(0);
+
+  const rowAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        Math.abs(dragX.value),
+        [0, 200],
+        [1, 0.1],
+        Extrapolation.CLAMP
+      ),
+    };
+  });
 
   const iconData = IconMap[logItem.type as keyof typeof IconMap] || {
     iconName: "phone" as MaterialIconsIconName,
@@ -101,21 +132,27 @@ const CallLog = ({
       ref={swipeRef}
       dragOffsetFromLeftEdge={30}
       leftThreshold={120}
-      renderLeftActions={() => (
-        <ActionWrapper
-          direction="left"
-          logIndex={logIndex}
-          isLastLogOfSection={isLastLogOfSection}
-        />
+      renderLeftActions={(prog, drag) => (
+        <>
+          <DragObserver drag={drag} dragX={dragX} />
+          <ActionWrapper
+            direction="left"
+            logIndex={logIndex}
+            isLastLogOfSection={isLastLogOfSection}
+          />
+        </>
       )}
       dragOffsetFromRightEdge={30}
       rightThreshold={120}
-      renderRightActions={() => (
-        <ActionWrapper
-          direction="right"
-          logIndex={logIndex}
-          isLastLogOfSection={isLastLogOfSection}
-        />
+      renderRightActions={(prog, drag) => (
+        <>
+          <DragObserver drag={drag} dragX={dragX} />
+          <ActionWrapper
+            direction="right"
+            logIndex={logIndex}
+            isLastLogOfSection={isLastLogOfSection}
+          />
+        </>
       )}
       onSwipeableOpen={(direction) => {
         if (direction === "left") {
@@ -127,86 +164,88 @@ const CallLog = ({
       }}
       containerStyle={{ overflow: "hidden" }}
     >
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onLongPress={handleLongPress}
-        className={clsx(
-          "flex-row items-center bg-card px-4 py-[14px] mx-2 border-b-border",
-          logIndex === 0 && "rounded-t-2xl",
-          isLastLogOfSection ? "rounded-b-2xl border-b-0" : "border-b",
-        )}
-      >
-        <View className="w-11 h-11 rounded-full justify-center items-center mr-[14px]">
-          <MaterialIcons
-            name={iconData.iconName}
-            color={iconData.color}
-            size={22}
-          />
-        </View>
-        <View className="flex-1">
-          <View className="flex-row items-center gap-[6px]">
-            <Text
-              className="text-[17px] font-medium"
-              style={{
-                fontSize: 17,
-                fontWeight: "500",
-                color:
-                  logItem.type === "MISSED"
-                    ? theme.colors.danger
-                    : theme.colors.textPrimary,
-              }}
-              numberOfLines={1}
-            >
-              {displayName}
-            </Text>
+      <Reanimated.View style={rowAnimatedStyle}>
+        <TouchableOpacity
+          activeOpacity={1}
+          onLongPress={handleLongPress}
+          className={clsx(
+            "flex-row items-center bg-card px-4 py-[14px] mx-2 border-b-border",
+            logIndex === 0 && "rounded-t-2xl",
+            isLastLogOfSection ? "rounded-b-2xl border-b-0" : "border-b",
+          )}
+        >
+          <View className="w-11 h-11 rounded-full justify-center items-center mr-[14px]">
+            <MaterialIcons
+              name={iconData.iconName}
+              color={iconData.color}
+              size={22}
+            />
           </View>
-          <View className="flex-row items-center mt-[3px]">
-            <Text
-              className="text-[13px]"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              {logItem.type === "INCOMING"
-                ? "Incoming"
-                : logItem.type === "OUTGOING"
-                  ? "Outgoing"
-                  : logItem.type === "MISSED"
-                    ? "Missed"
-                    : "Rejected"}
-            </Text>
-            <Text
-              className="text-[13px]"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              {" \u00B7 "}
-              {timestamp}
-            </Text>
-            {duration ? (
+          <View className="flex-1">
+            <View className="flex-row items-center gap-[6px]">
+              <Text
+                className="text-[17px] font-medium"
+                style={{
+                  fontSize: 17,
+                  fontWeight: "500",
+                  color:
+                    logItem.type === "MISSED"
+                      ? theme.colors.danger
+                      : theme.colors.textPrimary,
+                }}
+                numberOfLines={1}
+              >
+                {displayName}
+              </Text>
+            </View>
+            <View className="flex-row items-center mt-[3px]">
+              <Text
+                className="text-[13px]"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                {logItem.type === "INCOMING"
+                  ? "Incoming"
+                  : logItem.type === "OUTGOING"
+                    ? "Outgoing"
+                    : logItem.type === "MISSED"
+                      ? "Missed"
+                      : "Rejected"}
+              </Text>
               <Text
                 className="text-[13px]"
                 style={{ color: theme.colors.textSecondary }}
               >
                 {" \u00B7 "}
-                {duration}
+                {timestamp}
               </Text>
-            ) : null}
+              {duration ? (
+                <Text
+                  className="text-[13px]"
+                  style={{ color: theme.colors.textSecondary }}
+                >
+                  {" \u00B7 "}
+                  {duration}
+                </Text>
+              ) : null}
+            </View>
           </View>
-        </View>
-        <TouchableOpacity
-          onPress={handleCall}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={{
-            padding: 8,
-            backgroundColor: theme.colors.primaryLight,
-            borderRadius: 20,
-            width: 40,
-            height: 40,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <MaterialIcons name="call" color={theme.colors.primary} size={20} />
+          <TouchableOpacity
+            onPress={handleCall}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{
+              padding: 8,
+              backgroundColor: theme.colors.primaryLight,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <MaterialIcons name="call" color={theme.colors.primary} size={20} />
+          </TouchableOpacity>
         </TouchableOpacity>
-      </TouchableOpacity>
+      </Reanimated.View>
     </ReanimatedSwipeable>
   );
 };
