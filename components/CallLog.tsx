@@ -110,7 +110,7 @@ const CallLog = ({
         onPress={onPress}
         onLongPress={handleLongPress}
         className={clsx(
-          "flex-row items-center bg-card px-4 py-[14px] mx-2 border-b-border",
+          "flex-row items-center bg-card px-4 py-3 mx-2 border-b-border",
           logIndex === 0 && "rounded-t-2xl",
           isLastLogOfSection ? "rounded-b-2xl border-b-0" : "border-b",
         )}

@@ -16,6 +16,7 @@ class CallActionReceiver : BroadcastReceiver() {
         when (intent.action) {
             ACTION_ANSWER -> {
                 CallManager.answer()
+                CallManager.launchApp(context)
             }
             ACTION_REJECT -> {
                 CallManager.reject()

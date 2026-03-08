@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Callify",
-    "slug": "callify",
-    "scheme": "callify",
+    "name": "Shizn",
+    "slug": "shizn",
+    "scheme": "shizn",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#34C759"
       },
       "package": "com.anonymous.callify",
       "permissions": ["android.permission.READ_CALL_LOG", "android.permission.WRITE_CALL_LOG", "android.permission.READ_PHONE_STATE", "android.permission.CALL_PHONE", "android.permission.MANAGE_OWN_CALLS", "android.permission.WAKE_LOCK", "android.permission.DISABLE_KEYGUARD", "android.permission.USE_FULL_SCREEN_INTENT"]
@@ -34,7 +34,8 @@
         {
           "contactsPermission": "Allow $(PRODUCT_NAME) to access your contacts."
         }
-      ]
+      ],
+      "./withAndroidDialer.js"
     ]
   }
 }

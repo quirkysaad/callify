@@ -64,23 +64,29 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
       style={{ backgroundColor: theme.colors.background }}
     >
       <View
-        className="items-center justify-center w-24 h-24 rounded-full mb-8"
-        style={{ backgroundColor: theme.colors.card }}
+        className="items-center justify-center w-24 h-24 rounded-full mb-8 shadow-sm"
+        style={{ backgroundColor: theme.colors.successLight }}
       >
-        <PhoneCall size={48} color={theme.colors.primary} />
+        <PhoneCall size={48} color={theme.colors.success} />
       </View>
-      <Text className="text-2xl font-bold text-center mb-4 text-white">
+      <Text
+        className="text-2xl font-bold text-center mb-4"
+        style={{ color: theme.colors.textPrimary }}
+      >
         Default Phone App
       </Text>
-      <Text className="text-base text-center mb-10 text-gray-400">
-        Callify needs to be your default phone app to make and receive calls,
-        and to show your call history.
+      <Text
+        className="text-base text-center mb-10"
+        style={{ color: theme.colors.textSecondary }}
+      >
+        Shizn needs to be your default phone app to make and receive calls, and
+        to show your call history.
       </Text>
 
       <TouchableOpacity
         onPress={handleRequest}
         className="w-full py-4 rounded-xl flex-row items-center justify-center"
-        style={{ backgroundColor: theme.colors.primary }}
+        style={{ backgroundColor: theme.colors.success }}
       >
         <Text className="text-white font-bold text-lg">Set as Default</Text>
       </TouchableOpacity>

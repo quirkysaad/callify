@@ -101,7 +101,6 @@ class AppInCallService : InCallService() {
             showIncomingCallNotification(call)
             wakeUpScreen()
         }
-        launchApp()
     }
 
     override fun onCallRemoved(call: Call) {
@@ -112,7 +111,7 @@ class AppInCallService : InCallService() {
         cancelNotification()
         releaseWakeLock()
         releaseProximityWakeLock()
-        CallManager.removeCall()
+        CallManager.removeCall(call)
         call.unregisterCallback(callCallback)
     }
 
@@ -156,27 +155,6 @@ class AppInCallService : InCallService() {
             wakeLock = null
         } catch (e: Exception) {
             Log.e(TAG, "Error releasing wake lock", e)
-        }
-    }
-
-    private fun launchApp() {
-        try {
-            val packageName = applicationContext.packageName
-            val launchIntent = applicationContext.packageManager.getLaunchIntentForPackage(packageName)
-            launchIntent?.let {
-                it.addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
-                        Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-                )
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                    it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                }
-                applicationContext.startActivity(it)
-                Log.d(TAG, "App launched")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error launching app", e)
         }
     }
 

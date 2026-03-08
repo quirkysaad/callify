@@ -30,6 +30,7 @@ import theme from "../../utils/theme";
 import { CallLogProps, CallSectionProps } from "../../types";
 import CallLog from "../../components/CallLog";
 import { groupCallsByDate } from "../../utils/general-utils";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ContactDetail() {
   const router = useRouter();
@@ -85,11 +86,20 @@ export default function ContactDetail() {
           setContact(result);
           setFirstName(result.firstName || "");
           setLastName(result.lastName || "");
+          const uniquePhones = new Set<string>();
           const contactPhones =
-            result.phoneNumbers?.map((p) => ({
-              label: p.label || "mobile",
-              number: p.number || "",
-            })) || [];
+            result.phoneNumbers
+              ?.map((p) => ({
+                label: p.label || "mobile",
+                number: p.number || "",
+              }))
+              .filter((p) => {
+                const normalized = p.number.replace(/\D/g, "");
+                if (!normalized || uniquePhones.has(normalized)) return false;
+                uniquePhones.add(normalized);
+                return true;
+              }) || [];
+
           setPhones(
             contactPhones.length > 0
               ? contactPhones
@@ -213,252 +223,255 @@ export default function ContactDetail() {
   }
 
   return (
-    <View className="flex-1 bg-background pt-[StatusBar.currentHeight || 0]">
-      <View className="flex-row items-center justify-between px-4 py-3.5 border-b-[0.5px] border-border">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="p-1 min-w-[60px]"
-        >
-          <ArrowLeft size={20} color={theme.colors.textPrimary} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-textPrimary">
-          {editing ? "Edit Contact" : "Contact"}
-        </Text>
-        {editing ? (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View className="flex-1 bg-background pt-[StatusBar.currentHeight || 0]">
+        <View className="flex-row items-center justify-between px-4 py-3.5 border-b-[0.5px] border-border">
           <TouchableOpacity
-            onPress={handleSave}
-            disabled={saving}
+            onPress={() => router.back()}
             className="p-1 min-w-[60px]"
           >
-            <Text
-              className="text-base font-semibold text-primary text-right"
-              style={[saving && { opacity: 0.5 }]}
+            <ArrowLeft size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold text-textPrimary">
+            {editing ? "Edit Contact" : "Contact"}
+          </Text>
+          {editing ? (
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={saving}
+              className="p-1 min-w-[60px]"
             >
-              {"Save"}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={() => setEditing(true)}
-            className="p-1 min-w-[60px]"
-          >
-            <Text className="text-base font-medium text-primary text-right">
-              {"Edit"}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+              <Text
+                className="text-base font-semibold text-primary text-right"
+                style={[saving && { opacity: 0.5 }]}
+              >
+                {"Save"}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => setEditing(true)}
+              className="p-1 min-w-[60px]"
+            >
+              <Text className="text-base font-medium text-primary text-right">
+                {"Edit"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
-      >
-        <ScrollView className="flex-1 px-5" keyboardShouldPersistTaps="handled">
-          {/* Avatar and name */}
-          <Animated.View
-            entering={FadeInDown.delay(100).duration(400)}
-            className="items-center py-6"
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          className="flex-1"
+        >
+          <ScrollView
+            className="flex-1 px-5"
+            keyboardShouldPersistTaps="handled"
           >
+            {/* Avatar and name */}
             <Animated.View
-              entering={ZoomIn.delay(200).duration(400)}
-              className="w-[90px] h-[90px] rounded-[45px] bg-primaryLight justify-center items-center"
+              entering={FadeInDown.delay(100).duration(400)}
+              className="items-center py-6"
             >
-              <User size={40} color={theme.colors.primary} />
+              <Animated.View
+                entering={ZoomIn.delay(200).duration(400)}
+                className="w-[90px] h-[90px] rounded-[45px] bg-primaryLight justify-center items-center"
+              >
+                <User size={40} color={theme.colors.primary} />
+              </Animated.View>
+              {!editing ? (
+                <>
+                  <Text className="text-2xl font-semibold text-textPrimary mt-3.5">
+                    {contact.name || "No Name"}
+                  </Text>
+                </>
+              ) : (
+                <View className="w-full mt-4">
+                  <TextInput
+                    className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
+                    placeholder="First name"
+                    placeholderTextColor={theme.colors.textSecondary}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                  />
+                  <TextInput
+                    className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
+                    placeholder="Last name"
+                    placeholderTextColor={theme.colors.textSecondary}
+                    value={lastName}
+                    onChangeText={setLastName}
+                  />
+                </View>
+              )}
             </Animated.View>
+
+            {/* Quick actions (view mode) */}
             {!editing ? (
-              <>
-                <Text className="text-2xl font-semibold text-textPrimary mt-3.5">
-                  {contact.name || "No Name"}
+              <Animated.View
+                entering={FadeInDown.delay(200).duration(400)}
+                className="flex-row justify-center gap-6 mb-6"
+              >
+                <TouchableOpacity
+                  className="w-[80px] h-[70px] rounded-2xl bg-primaryLight justify-center items-center gap-[6px]"
+                  onPress={() => handleCall(phones[0]?.number)}
+                >
+                  <Phone size={20} color={theme.colors.primary} />
+                  <Text className="text-xs text-textSecondary font-medium">
+                    {"Call"}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            ) : null}
+
+            {/* Phone numbers */}
+            <Animated.View
+              entering={FadeInDown.delay(300).duration(400)}
+              className="mb-6"
+            >
+              <View className="flex-row justify-between items-center">
+                <Text className="text-sm font-semibold text-textSecondary mb-2.5 uppercase tracking-[0.5px]">
+                  {"Phone"}
                 </Text>
-              </>
-            ) : (
-              <View className="w-full mt-4">
+                {editing ? (
+                  <TouchableOpacity onPress={addPhone}>
+                    <PlusCircle size={22} color={theme.colors.primary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              {editing
+                ? phones.map((phone, index) => (
+                    <View key={index} className="flex-row items-center">
+                      <TextInput
+                        className="flex-1 border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
+                        placeholder="Phone number"
+                        placeholderTextColor={theme.colors.textSecondary}
+                        value={phone.number}
+                        onChangeText={(v) => updatePhone(index, v)}
+                        keyboardType="phone-pad"
+                      />
+                      {phones.length > 1 ? (
+                        <TouchableOpacity
+                          onPress={() => removePhone(index)}
+                          className="p-2"
+                        >
+                          <MinusCircle size={20} color={theme.colors.danger} />
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ))
+                : phones.map((phone, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => handleCall(phone.number)}
+                      className="flex-row justify-between items-center bg-card rounded-xl px-4 py-[14px] mb-2 border border-border"
+                    >
+                      <View>
+                        <Text className="text-xs text-textSecondary capitalize mb-0.5">
+                          {phone.label}
+                        </Text>
+                        <Text className="text-base text-textPrimary">
+                          {phone.number}
+                        </Text>
+                      </View>
+                      <Phone size={18} color={theme.colors.primary} />
+                    </TouchableOpacity>
+                  ))}
+            </Animated.View>
+
+            {/* Email */}
+            {editing ? (
+              <View className="mb-6">
+                <Text className="text-sm font-semibold text-textSecondary mb-2.5 uppercase tracking-[0.5px]">
+                  {"Email"}
+                </Text>
                 <TextInput
                   className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
-                  placeholder="First name"
+                  placeholder="Email address"
                   placeholderTextColor={theme.colors.textSecondary}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                />
-                <TextInput
-                  className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
-                  placeholder="Last name"
-                  placeholderTextColor={theme.colors.textSecondary}
-                  value={lastName}
-                  onChangeText={setLastName}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
               </View>
-            )}
-          </Animated.View>
+            ) : email ? (
+              <View className="mb-6">
+                <Text className="text-sm font-semibold text-textSecondary mb-2.5 uppercase tracking-[0.5px]">
+                  {"Email"}
+                </Text>
+                <View className="flex-row justify-between items-center bg-card rounded-xl px-4 py-[14px] mb-2 border border-border">
+                  <Text className="text-base text-textPrimary">{email}</Text>
+                </View>
+              </View>
+            ) : null}
 
-          {/* Quick actions (view mode) */}
-          {!editing ? (
-            <Animated.View
-              entering={FadeInDown.delay(200).duration(400)}
-              className="flex-row justify-center gap-6 mb-6"
-            >
-              <TouchableOpacity
-                className="w-[80px] h-[70px] rounded-2xl bg-primaryLight justify-center items-center gap-[6px]"
-                onPress={() => handleCall(phones[0]?.number)}
+            {/* Call History Section */}
+            {!editing && callHistory.length > 0 && (
+              <Animated.View
+                entering={FadeInDown.delay(350).duration(400)}
+                className="mb-6"
               >
-                <Phone size={20} color={theme.colors.primary} />
-                <Text className="text-xs text-textSecondary font-medium">
-                  {"Call"}
+                <View className="flex-row items-center gap-2 mb-3">
+                  <History size={16} color={theme.colors.textSecondary} />
+                  <Text className="text-sm font-semibold text-textSecondary uppercase tracking-[0.5px]">
+                    {"Call History"}
+                  </Text>
+                </View>
+
+                <View
+                  className="bg-card rounded-2xl border border-border overflow-hidden"
+                  style={{ maxHeight: 400 }} // Make it a scrollable sub-section
+                >
+                  <ScrollView
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {groupCallsByDate(callHistory).map(
+                      (section: CallSectionProps, sIdx: number) => (
+                        <View key={section.title + sIdx}>
+                          <View className="bg-primaryLight/30 px-4 py-1.5">
+                            <Text className="text-[11px] font-bold text-textSecondary uppercase tracking-[1px]">
+                              {section.title}
+                            </Text>
+                          </View>
+                          {section.data.map((log, index) => (
+                            <CallLog
+                              key={log.id || index.toString()}
+                              logItem={log}
+                              logIndex={index}
+                              isLastLogOfSection={
+                                index === section.data.length - 1
+                              }
+                              swipeDisabled={true}
+                              hideCallButton={true}
+                            />
+                          ))}
+                        </View>
+                      ),
+                    )}
+                  </ScrollView>
+                </View>
+              </Animated.View>
+            )}
+
+            {/* Delete button */}
+            <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+              <TouchableOpacity
+                className="flex-row items-center justify-center gap-2 py-[14px] rounded-xl mt-4"
+                style={{ backgroundColor: theme.colors.danger + "22" }}
+                onPress={handleDelete}
+              >
+                <Trash size={18} color={theme.colors.danger} />
+                <Text className="text-base font-medium text-danger">
+                  {"Delete Contact"}
                 </Text>
               </TouchableOpacity>
             </Animated.View>
-          ) : null}
 
-          {/* Phone numbers */}
-          <Animated.View
-            entering={FadeInDown.delay(300).duration(400)}
-            className="mb-6"
-          >
-            <View className="flex-row justify-between items-center">
-              <Text className="text-sm font-semibold text-textSecondary mb-2.5 uppercase tracking-[0.5px]">
-                {"Phone"}
-              </Text>
-              {editing ? (
-                <TouchableOpacity onPress={addPhone}>
-                  <PlusCircle size={22} color={theme.colors.primary} />
-                </TouchableOpacity>
-              ) : null}
-            </View>
-            {editing
-              ? phones.map((phone, index) => (
-                  <View key={index} className="flex-row items-center">
-                    <TextInput
-                      className="flex-1 border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
-                      placeholder="Phone number"
-                      placeholderTextColor={theme.colors.textSecondary}
-                      value={phone.number}
-                      onChangeText={(v) => updatePhone(index, v)}
-                      keyboardType="phone-pad"
-                    />
-                    {phones.length > 1 ? (
-                      <TouchableOpacity
-                        onPress={() => removePhone(index)}
-                        className="p-2"
-                      >
-                        <MinusCircle size={20} color={theme.colors.danger} />
-                      </TouchableOpacity>
-                    ) : null}
-                  </View>
-                ))
-              : phones.map((phone, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => handleCall(phone.number)}
-                    className="flex-row justify-between items-center bg-card rounded-xl px-4 py-[14px] mb-2 border border-border"
-                  >
-                    <View>
-                      <Text className="text-xs text-textSecondary capitalize mb-0.5">
-                        {phone.label}
-                      </Text>
-                      <Text className="text-base text-textPrimary">
-                        {phone.number}
-                      </Text>
-                    </View>
-                    <Phone size={18} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                ))}
-          </Animated.View>
-
-          {/* Email */}
-          {editing ? (
-            <View className="mb-6">
-              <Text className="text-sm font-semibold text-textSecondary mb-2.5 uppercase tracking-[0.5px]">
-                {"Email"}
-              </Text>
-              <TextInput
-                className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
-                placeholder="Email address"
-                placeholderTextColor={theme.colors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-          ) : email ? (
-            <View className="mb-6">
-              <Text className="text-sm font-semibold text-textSecondary mb-2.5 uppercase tracking-[0.5px]">
-                {"Email"}
-              </Text>
-              <View className="flex-row justify-between items-center bg-card rounded-xl px-4 py-[14px] mb-2 border border-border">
-                <Text className="text-base text-textPrimary">{email}</Text>
-              </View>
-            </View>
-          ) : null}
-
-          {/* Call History Section */}
-          {!editing && callHistory.length > 0 && (
-            <Animated.View
-              entering={FadeInDown.delay(350).duration(400)}
-              className="mb-6"
-            >
-              <View className="flex-row items-center gap-2 mb-3">
-                <History size={16} color={theme.colors.textSecondary} />
-                <Text className="text-sm font-semibold text-textSecondary uppercase tracking-[0.5px]">
-                  {"Call History"}
-                </Text>
-              </View>
-
-              <View
-                className="bg-card rounded-2xl border border-border overflow-hidden"
-                style={{ maxHeight: 400 }} // Make it a scrollable sub-section
-              >
-                <ScrollView
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator={false}
-                >
-                  {groupCallsByDate(callHistory).map(
-                    (section: CallSectionProps, sIdx: number) => (
-                      <View key={section.title + sIdx}>
-                        <View className="bg-primaryLight/30 px-4 py-1.5">
-                          <Text className="text-[11px] font-bold text-textSecondary uppercase tracking-[1px]">
-                            {section.title}
-                          </Text>
-                        </View>
-                        {section.data.map((log, index) => (
-                          <CallLog
-                            key={log.id || index.toString()}
-                            logItem={log}
-                            logIndex={index}
-                            isLastLogOfSection={
-                              index === section.data.length - 1
-                            }
-                            swipeDisabled={true}
-                            hideCallButton={true}
-                          />
-                        ))}
-                      </View>
-                    ),
-                  )}
-                </ScrollView>
-              </View>
-            </Animated.View>
-          )}
-
-          {/* Delete button */}
-          <Animated.View entering={FadeInDown.delay(400).duration(400)}>
-            <TouchableOpacity
-              className="flex-row items-center justify-center gap-2 py-[14px] rounded-xl mt-4"
-              style={{ backgroundColor: theme.colors.danger + "22" }}
-              onPress={handleDelete}
-            >
-              <Trash size={18} color={theme.colors.danger} />
-              <Text className="text-base font-medium text-danger">
-                {"Delete Contact"}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView>
   );
 }
-
-// Removed StyleSheet constants as they are converted into Tailwind classes throughout the component.

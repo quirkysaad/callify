@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import KeypadButton from "../../components/KeypadButton";
 import ActionButton from "../../components/ActionButton";
 import { CallLogsModule } from "../../modules/dialer-module";
-import { useContacts } from "../../utils/AppProviders";
+import { useContacts, useCallState } from "../../utils/AppProviders";
 import { searchContactsT9 } from "../../utils/t9-search";
 import theme from "../../utils/theme";
 import ContactItem from "../../components/ContactItem";
@@ -69,6 +69,17 @@ function KeypadScreen() {
       console.log("Call failed", e);
     }
   }, [phoneNumber]);
+
+  const { setCallState } = useCallState();
+
+  const handleMockCall = useCallback(() => {
+    setCallState({
+      number: phoneNumber || "+1 234 567 8900",
+      name: phoneNumber ? undefined : "Mock Contact Long Name Sample",
+      state: 4, // RINGING
+      callCount: 2,
+    });
+  }, [phoneNumber, setCallState]);
 
   const handleLongPress = useCallback(
     (val: string) => {
@@ -157,8 +168,8 @@ function KeypadScreen() {
             </View>
           ))}
 
-          <View className="flex-row justify-center items-center w-full mt-2">
-            <View className="w-[70px]" />
+          <View className="relative flex-row justify-center items-center w-full mt-2">
+            {/* <View className="w-[70px]" /> */}
             <TouchableOpacity
               activeOpacity={0.7}
               className="bg-success rounded-full w-[70px] h-[70px] justify-center items-center"
@@ -170,21 +181,20 @@ function KeypadScreen() {
                 elevation: 4,
               }}
               onPress={dialNumber}
+              onLongPress={__DEV__ ? handleMockCall : undefined}
             >
               <Phone size={36} color={theme.colors.white} />
             </TouchableOpacity>
 
             {/* Delete Digit Icon */}
-            {phoneNumber.length > 0 ? (
+            {phoneNumber.length > 0 && (
               <TouchableOpacity
                 onPress={handleBackspace}
                 onLongPress={handleLongBackspace}
-                className="w-[70px] h-[70px] justify-center items-center"
+                className="absolute right-[40px] w-[80px] h-[80px] justify-center items-center"
               >
-                <Delete size={26} color={theme.colors.textPrimary} />
+                <Delete size={28} color={theme.colors.textPrimary} />
               </TouchableOpacity>
-            ) : (
-              <View className="w-[70px]" />
             )}
           </View>
         </View>

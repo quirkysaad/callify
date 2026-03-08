@@ -14,9 +14,11 @@ declare class CallModule extends NativeModule {
   toggleSpeaker(speaker: boolean): void;
   toggleHold(hold: boolean): void;
   sendDtmf(digit: string): void;
+  mergeCalls(): void;
   silenceRingtone(): void;
   handlePowerButton(): void;
-  getActiveCall(): { number: string; state: number; isMuted: boolean; audioRoute: number } | null;
+  getActiveCall(): { number: string; state: number; isMuted: boolean; audioRoute: number; callCount: number } | null;
+  moveTaskToBack(): void;
 }
 
 // This call loads the native module object from the JSI.

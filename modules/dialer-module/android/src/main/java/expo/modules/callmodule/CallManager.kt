@@ -5,28 +5,36 @@ import android.telecom.CallAudioState
 import android.telecom.VideoProfile
 
 object CallManager {
-    var activeCall: Call? = null
+    var calls = mutableListOf<Call>()
     var listener: ((Call?) -> Unit)? = null
     var inCallService: AppInCallService? = null
 
+    val activeCall: Call?
+        get() = calls.firstOrNull { it.state == Call.STATE_ACTIVE } 
+            ?: calls.firstOrNull { it.state == Call.STATE_DIALING || it.state == Call.STATE_CONNECTING }
+            ?: calls.firstOrNull { it.state == Call.STATE_RINGING }
+            ?: calls.firstOrNull()
+
     fun updateCall(call: Call) {
-        activeCall = call
-        listener?.invoke(call)
+        if (!calls.contains(call)) {
+            calls.add(call)
+        }
+        listener?.invoke(activeCall)
     }
 
-    fun removeCall() {
-        activeCall = null
-        listener?.invoke(null)
+    fun removeCall(call: Call) {
+        calls.remove(call)
+        listener?.invoke(activeCall)
     }
 
     fun answer() {
         inCallService?.stopRinging()
-        activeCall?.answer(VideoProfile.STATE_AUDIO_ONLY)
+        calls.firstOrNull { it.state == Call.STATE_RINGING }?.answer(VideoProfile.STATE_AUDIO_ONLY)
     }
 
     fun reject() {
         inCallService?.stopRinging()
-        activeCall?.reject(false, null)
+        calls.firstOrNull { it.state == Call.STATE_RINGING }?.reject(false, null)
     }
 
     fun disconnect() {
@@ -39,7 +47,15 @@ object CallManager {
     }
 
     fun unhold() {
-        activeCall?.unhold()
+        calls.firstOrNull { it.state == Call.STATE_HOLDING }?.unhold()
+    }
+
+    fun merge() {
+        if (calls.size >= 2) {
+            val call1 = calls[0]
+            val call2 = calls[1]
+            call1.conference(call2)
+        }
     }
 
     fun toggleMute(muted: Boolean) {
@@ -89,5 +105,22 @@ object CallManager {
 
     fun silenceRingtone() {
         inCallService?.silenceRingtone()
+    }
+
+    fun launchApp(context: android.content.Context) {
+        try {
+            val packageName = context.packageName
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+            launchIntent?.let {
+                it.addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                        android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                        android.content.Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                )
+                context.startActivity(it)
+            }
+        } catch (e: Exception) {
+            // Log error
+        }
     }
 }

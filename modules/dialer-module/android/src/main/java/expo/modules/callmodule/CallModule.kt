@@ -272,6 +272,11 @@ class CallModule : Module() {
       CallManager.handlePowerButton()
     }
 
+    // Merge / Conference
+    Function("mergeCalls") {
+      CallManager.merge()
+    }
+
     // Get Active Call Status (includes mute/speaker state)
     Function("getActiveCall") {
       val call = CallManager.activeCall ?: return@Function null
@@ -281,13 +286,20 @@ class CallModule : Module() {
       val state = call.state
       val isMuted = CallManager.isMuted()
       val audioRoute = CallManager.getAudioRoute()
+      val callCount = CallManager.calls.size
       return@Function mapOf(
         "number" to number,
         "name" to name,
         "state" to state,
         "isMuted" to isMuted,
-        "audioRoute" to audioRoute
+        "audioRoute" to audioRoute,
+        "callCount" to callCount
       )
+    }
+
+    Function("moveTaskToBack") {
+      val activity = appContext.currentActivity
+      activity?.moveTaskToBack(true)
     }
 
     OnCreate {

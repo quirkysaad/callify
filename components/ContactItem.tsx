@@ -70,8 +70,7 @@ const ContactItem = React.memo(
           <View className="flex-1">
             <View className="flex-row items-center gap-[6px]">
               <Text
-                className="text-base font-medium"
-                style={{ color: theme.colors.textPrimary }}
+                className="text-base font-medium text-textPrimary"
                 numberOfLines={1}
               >
                 {item.name || "No Name"}

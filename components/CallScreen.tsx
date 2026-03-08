@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Animated, {
   FadeInDown,
   SlideInDown,
@@ -13,6 +13,12 @@ import {
   MicOff,
   Grid,
   Volume2,
+  X,
+  Delete,
+  Pause,
+  Play,
+  UserPlus,
+  Users,
 } from "lucide-react-native";
 import { CallLogsModule } from "../modules/dialer-module";
 import { useCallState, useContacts } from "../utils/AppProviders";
@@ -41,13 +47,28 @@ const CallScreen = () => {
   const [dtmfDigits, setDtmfDigits] = useState("");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const wasInCall = useRef(false);
+
   useEffect(() => {
+    if (callState) {
+      wasInCall.current = true;
+    }
+
     if (callState?.state === 4 && !timerRef.current) {
       timerRef.current = setInterval(() => {
         setTimer((prev) => prev + 1);
       }, 1000);
     }
+
     if (!callState) {
+      if (wasInCall.current) {
+        // Call just concluded, minimize the app
+        try {
+          CallLogsModule.moveTaskToBack?.();
+        } catch (_e) {}
+        wasInCall.current = false;
+      }
+
       setTimer(0);
       setIsMuted(false);
       setIsSpeaker(false);
@@ -58,13 +79,16 @@ const CallScreen = () => {
         timerRef.current = null;
       }
     }
-    return () => {
-      if (!callState && timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
   }, [callState?.state]);
+
+  // Sync native audio state to UI
+  useEffect(() => {
+    if (callState) {
+      if (callState.isMuted !== undefined) setIsMuted(callState.isMuted);
+      if (callState.audioRoute !== undefined)
+        setIsSpeaker(callState.audioRoute === 2); // 2 is SPEAKER in Android
+    }
+  }, [callState?.isMuted, callState?.audioRoute]);
 
   const handleAnswer = useCallback(() => {
     try {
@@ -98,25 +122,62 @@ const CallScreen = () => {
     } catch (_e) {}
   }, [isSpeaker]);
 
+  const handleToggleHold = useCallback(() => {
+    const isOnHold = callState?.state === 3;
+    try {
+      CallLogsModule.toggleHold?.(!isOnHold);
+    } catch (_e) {}
+  }, [callState?.state]);
+
+  const handleMerge = useCallback(() => {
+    try {
+      CallLogsModule.mergeCalls?.();
+    } catch (_e) {}
+  }, []);
+
+  const [lastDigit, setLastDigit] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleSendDtmf = useCallback((digit: string) => {
     setDtmfDigits((prev) => prev + digit);
+    setLastDigit(digit);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => {
+      setLastDigit(null);
+      flashTimer.current = null;
+    }, 800);
+
     try {
       CallLogsModule.sendDtmf?.(digit);
     } catch (_e) {}
   }, []);
 
+  const handleBackspace = useCallback(() => {
+    setDtmfDigits((prev) => prev.slice(0, -1));
+    setLastDigit(null);
+  }, []);
+
+  const handleLongBackspace = useCallback(() => {
+    setDtmfDigits("");
+    setLastDigit(null);
+  }, []);
+
   const matchedContact = React.useMemo(() => {
     if (!callState?.number || callState.number === "Unknown") return null;
+
+    // Normalize: remove all non-digits
     const cleanNumber = callState.number.replace(/\D/g, "");
     if (!cleanNumber) return null;
+
+    // Match based on the last 10 digits for better compatibility with/without country codes
     const matchTarget =
-      cleanNumber.length > 7 ? cleanNumber.slice(-10) : cleanNumber;
+      cleanNumber.length >= 10 ? cleanNumber.slice(-10) : cleanNumber;
 
     return contacts.find((c) =>
       c.phoneNumbers?.some((p) => {
-        const pClean = p.number?.replace(/\D/g, "");
+        const pClean = (p.number || "").replace(/\D/g, "");
         if (!pClean) return false;
-        const pTarget = pClean.length > 7 ? pClean.slice(-10) : pClean;
+        const pTarget = pClean.length >= 10 ? pClean.slice(-10) : pClean;
         return pTarget === matchTarget;
       }),
     );
@@ -125,46 +186,70 @@ const CallScreen = () => {
   if (!callState) return null;
 
   const isRinging = callState.state === 2;
-  const isDialing =
-    callState.state === 3 || callState.state === 9 || callState.state === 1;
+  const isHold = callState.state === 3;
+  const isDialing = callState.state === 9 || callState.state === 1;
   const isActive = callState.state === 4;
 
   const statusText = isRinging
     ? "Incoming call"
-    : isDialing
-      ? "Calling..."
-      : isActive
-        ? formatTimer(timer)
-        : "Connecting...";
+    : isHold
+      ? "On hold"
+      : isDialing
+        ? "Calling..."
+        : isActive
+          ? formatTimer(timer)
+          : "Connecting...";
 
+  // Prioritize matchedContact.name over callState.name
   const displayName =
-    callState.name || matchedContact?.name || callState.number;
+    matchedContact?.name || callState.name || callState.number;
+
+  const secondaryText = matchedContact ? callState.number : "Mobile";
 
   return (
     <Animated.View
       entering={SlideInDown.duration(400)}
-      style={StyleSheet.absoluteFillObject}
-      className="z-[9999] bg-background elevation-[999]"
+      className="absolute inset-0 z-[9999] bg-background elevation-[999]"
     >
-      <SafeAreaView className="flex-1 justify-between py-5">
+      <SafeAreaView className="flex-1">
         <Animated.View
           entering={FadeInDown.delay(200).duration(400)}
-          className="items-center mt-10"
+          className="items-center mt-10 h-[120px] justify-center"
         >
-          <Text className="text-textSecondary text-base font-medium tracking-[1px] mb-2">
-            {statusText}
-          </Text>
-          <Text className="text-textPrimary text-[34px] font-light tracking-[-0.5px] mb-[6px]">
-            {displayName}
-          </Text>
-          {showKeypad && dtmfDigits ? (
-            <Text className="text-textPrimary text-xl font-normal tracking-[2px]">
-              {dtmfDigits}
-            </Text>
+          {showKeypad && lastDigit ? (
+            <Animated.Text
+              key={dtmfDigits.length} // Force re-animation on new press
+              entering={ZoomIn.duration(200)}
+              className="text-primary text-[56px] font-light"
+            >
+              {lastDigit}
+            </Animated.Text>
           ) : (
-            <Text className="text-textSecondary text-sm">
-              {matchedContact ? callState.number : "Mobile"}
-            </Text>
+            <>
+              <Text className="text-textSecondary text-base font-medium tracking-[1px] mb-2">
+                {statusText}
+              </Text>
+              <Text
+                className="text-textPrimary text-[28px] font-light tracking-[-0.5px] mb-2 text-center px-6"
+                numberOfLines={2}
+                adjustsFontSizeToFit
+              >
+                {displayName}
+              </Text>
+              {showKeypad && dtmfDigits ? (
+                <Text
+                  className="text-textPrimary text-[24px] font-normal tracking-[2px] px-10"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {dtmfDigits}
+                </Text>
+              ) : (
+                <Text className="text-textSecondary text-sm">
+                  {secondaryText}
+                </Text>
+              )}
+            </>
           )}
         </Animated.View>
 
@@ -184,14 +269,8 @@ const CallScreen = () => {
                 {row.map((digit) => (
                   <TouchableOpacity
                     key={digit}
-                    className="w-[72px] h-[72px] rounded-[36px] bg-card justify-center items-center"
-                    style={{
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 3,
-                      elevation: 2,
-                    }}
+                    activeOpacity={0.6}
+                    className="w-[72px] h-[72px] bg-card justify-center items-center active:bg-primaryLight"
                     onPress={() => handleSendDtmf(digit)}
                   >
                     <Text className="text-textPrimary text-[28px] font-light">
@@ -205,40 +284,69 @@ const CallScreen = () => {
         )}
 
         {!isRinging && (
-          <Animated.View
-            entering={FadeInDown.delay(100).duration(300)}
-            className="flex-row justify-evenly px-[30px] mb-5"
-          >
-            <ActionButton
-              Icon={MicOff}
-              label="Mute"
-              active={isMuted}
-              onPress={handleToggleMute}
-            />
-            <ActionButton
-              Icon={Grid}
-              label={showKeypad ? "Hide" : "Keypad"}
-              active={showKeypad}
-              onPress={() => setShowKeypad(!showKeypad)}
-            />
-            <ActionButton
-              Icon={Volume2}
-              label="Speaker"
-              active={isSpeaker}
-              onPress={handleToggleSpeaker}
-            />
-          </Animated.View>
+          <View>
+            <Animated.View
+              entering={FadeInDown.delay(100).duration(300)}
+              className="flex-row justify-evenly px-[30px] mb-6"
+            >
+              <ActionButton
+                Icon={MicOff}
+                label="Mute"
+                active={isMuted}
+                onPress={handleToggleMute}
+              />
+              <ActionButton
+                Icon={Grid}
+                label={showKeypad ? "Hide" : "Keypad"}
+                active={showKeypad}
+                onPress={() => setShowKeypad(!showKeypad)}
+              />
+              <ActionButton
+                Icon={Volume2}
+                label="Speaker"
+                active={isSpeaker}
+                onPress={handleToggleSpeaker}
+              />
+            </Animated.View>
+
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(300)}
+              className="flex-row justify-evenly px-[30px] mb-8"
+            >
+              <ActionButton
+                Icon={UserPlus}
+                label="Add call"
+                onPress={() => {
+                  try {
+                    CallLogsModule.moveTaskToBack?.();
+                  } catch (_e) {}
+                }}
+              />
+              <ActionButton
+                Icon={isHold ? Play : Pause}
+                label={isHold ? "Resume" : "Hold"}
+                active={isHold}
+                onPress={handleToggleHold}
+              />
+              <ActionButton
+                Icon={Users}
+                label="Merge"
+                disabled={!callState?.callCount || callState.callCount < 2}
+                onPress={handleMerge}
+              />
+            </Animated.View>
+          </View>
         )}
 
         <Animated.View
           entering={FadeInDown.delay(500).duration(400)}
-          className="px-10 pb-5"
+          className="px-10 pb-24"
         >
           {isRinging ? (
-            <View className="flex-row justify-between">
+            <View className="flex-row justify-between items-end">
               <View className="items-center">
                 <TouchableOpacity
-                  className="w-[75px] h-[75px] rounded-[37.5px] bg-danger justify-center items-center"
+                  className="w-[70px] h-[70px] rounded-full bg-danger justify-center items-center"
                   style={{
                     shadowColor: theme.colors.danger,
                     shadowOffset: { width: 0, height: 4 },
@@ -248,11 +356,7 @@ const CallScreen = () => {
                   }}
                   onPress={handleReject}
                 >
-                  <Phone
-                    size={32}
-                    color="white"
-                    style={{ transform: [{ rotate: "135deg" }] }}
-                  />
+                  <X size={32} color="white" />
                 </TouchableOpacity>
                 <Text className="text-textSecondary text-[13px] mt-2 font-medium">
                   {"Decline"}
@@ -275,7 +379,7 @@ const CallScreen = () => {
               </View>
               <View className="items-center">
                 <TouchableOpacity
-                  className="w-[75px] h-[75px] rounded-[37.5px] bg-success justify-center items-center"
+                  className="w-[70px] h-[70px] rounded-full bg-success justify-center items-center"
                   style={{
                     shadowColor: theme.colors.success,
                     shadowOffset: { width: 0, height: 4 },
@@ -293,7 +397,7 @@ const CallScreen = () => {
               </View>
             </View>
           ) : (
-            <View className="flex-row justify-center">
+            <View className="relative flex-row justify-center items-center">
               <TouchableOpacity
                 className="w-[75px] h-[75px] rounded-[37.5px] bg-danger justify-center items-center"
                 style={{
@@ -305,12 +409,18 @@ const CallScreen = () => {
                 }}
                 onPress={handleEndCall}
               >
-                <Phone
-                  size={32}
-                  color="white"
-                  style={{ transform: [{ rotate: "135deg" }] }}
-                />
+                <Phone size={32} color="white" />
               </TouchableOpacity>
+
+              {showKeypad && dtmfDigits.length > 0 && (
+                <TouchableOpacity
+                  onPress={handleBackspace}
+                  onLongPress={handleLongBackspace}
+                  className="absolute right-8 w-[60px] h-[60px] justify-center items-center"
+                >
+                  <Delete size={28} color={theme.colors.textPrimary} />
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </Animated.View>
@@ -323,19 +433,23 @@ const ActionButton = ({
   Icon,
   label,
   active,
+  disabled,
   onPress,
 }: {
   Icon: any;
   label: string;
   active?: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) => (
   <TouchableOpacity
     onPress={onPress}
+    disabled={disabled}
     className={`w-[72px] h-[72px] rounded-[36px] justify-center items-center ${active ? "bg-primary" : "bg-primaryLight"}`}
+    style={{ opacity: disabled ? 0.3 : 1 }}
   >
     <Icon
-      size={24}
+      size={18}
       color={active ? theme.colors.white : theme.colors.primary}
     />
     <Text
@@ -345,9 +459,5 @@ const ActionButton = ({
     </Text>
   </TouchableOpacity>
 );
-
-// Styles that could not be easily translated to NativeWind without losing shadow cross-platform functionality
-// or requiring absoluteFillObject spread.
-// Removing unused styles as they are now Tailwind classes.
 
 export default React.memo(CallScreen);

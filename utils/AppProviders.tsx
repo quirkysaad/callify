@@ -210,14 +210,23 @@ export const RecentsProvider = ({
 };
 
 // ---- Call State Context ----
-type ActiveCallState = { number: string; name?: string; state: number } | null;
+export type ActiveCallState = {
+  number: string;
+  name?: string;
+  state: number;
+  callCount?: number;
+  isMuted?: boolean;
+  audioRoute?: number;
+} | null;
 
 type CallStateContextType = {
   callState: ActiveCallState;
+  setCallState: (state: ActiveCallState) => void;
 };
 
 const CallStateContext = createContext<CallStateContextType>({
   callState: null,
+  setCallState: () => {},
 });
 
 export const useCallState = () => useContext(CallStateContext);
@@ -228,11 +237,13 @@ export const CallStateProvider = ({
   children: React.ReactNode;
 }) => {
   const [callState, setCallState] = useState<ActiveCallState>(null);
+  const isMocked = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
     const checkCall = async () => {
+      if (isMocked.current) return;
       try {
         const { CallLogsModule } = require("../modules/dialer-module");
         const activeCall = await CallLogsModule.getActiveCall?.();
@@ -261,8 +272,16 @@ export const CallStateProvider = ({
     };
   }, []);
 
+  const handleSetCallState = (state: ActiveCallState) => {
+    if (!__DEV__ && state !== null) return;
+    isMocked.current = state !== null;
+    setCallState(state);
+  };
+
   return (
-    <CallStateContext.Provider value={{ callState }}>
+    <CallStateContext.Provider
+      value={{ callState, setCallState: handleSetCallState }}
+    >
       {children}
     </CallStateContext.Provider>
   );
