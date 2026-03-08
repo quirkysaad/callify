@@ -16,7 +16,7 @@ import {
 } from "lucide-react-native";
 import { CallLogsModule } from "../modules/dialer-module";
 import { useCallState, useContacts } from "../utils/AppProviders";
-import theme from "../utils/theme";
+import { useTheme } from "../utils/ThemeContext";
 
 const formatTimer = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -32,6 +32,7 @@ const DTMF_KEYS = [
 ];
 
 const CallScreen = () => {
+  const { colors } = useTheme();
   const { callState } = useCallState();
   const { contacts } = useContacts();
   const [timer, setTimer] = useState(0);
@@ -174,7 +175,7 @@ const CallScreen = () => {
             className="items-center my-5 flex-1 justify-center"
           >
             <View className="w-[120px] h-[120px] rounded-[60px] bg-primaryLight justify-center items-center">
-              <User size={56} color={theme.colors.primary} />
+              <User size={56} color={colors.primary} />
             </View>
           </Animated.View>
         ) : (
@@ -240,7 +241,7 @@ const CallScreen = () => {
                 <TouchableOpacity
                   className="w-[75px] h-[75px] rounded-[37.5px] bg-danger justify-center items-center"
                   style={{
-                    shadowColor: theme.colors.danger,
+                    shadowColor: colors.danger,
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -267,7 +268,7 @@ const CallScreen = () => {
                     } catch (_e) {}
                   }}
                 >
-                  <BellOff size={24} color={theme.colors.primary} />
+                  <BellOff size={24} color={colors.primary} />
                 </TouchableOpacity>
                 <Text className="text-textSecondary text-[13px] mt-2 font-medium">
                   {"Silence"}
@@ -277,7 +278,7 @@ const CallScreen = () => {
                 <TouchableOpacity
                   className="w-[75px] h-[75px] rounded-[37.5px] bg-success justify-center items-center"
                   style={{
-                    shadowColor: theme.colors.success,
+                    shadowColor: colors.success,
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -297,7 +298,7 @@ const CallScreen = () => {
               <TouchableOpacity
                 className="w-[75px] h-[75px] rounded-[37.5px] bg-danger justify-center items-center"
                 style={{
-                  shadowColor: theme.colors.danger,
+                  shadowColor: colors.danger,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
@@ -329,22 +330,22 @@ const ActionButton = ({
   label: string;
   active?: boolean;
   onPress: () => void;
-}) => (
-  <TouchableOpacity
-    onPress={onPress}
-    className={`w-[72px] h-[72px] rounded-[36px] justify-center items-center ${active ? "bg-primary" : "bg-primaryLight"}`}
-  >
-    <Icon
-      size={24}
-      color={active ? theme.colors.white : theme.colors.primary}
-    />
-    <Text
-      className={`text-[11px] mt-1 font-medium ${active ? "text-primaryLight" : "text-primary"}`}
+}) => {
+  const { colors } = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`w-[72px] h-[72px] rounded-[36px] justify-center items-center ${active ? "bg-primary" : "bg-primaryLight"}`}
     >
-      {label}
-    </Text>
-  </TouchableOpacity>
-);
+      <Icon size={24} color={active ? colors.white : colors.primary} />
+      <Text
+        className={`text-[11px] mt-1 font-medium ${active ? "text-primaryLight" : "text-primary"}`}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 // Styles that could not be easily translated to NativeWind without losing shadow cross-platform functionality
 // or requiring absoluteFillObject spread.

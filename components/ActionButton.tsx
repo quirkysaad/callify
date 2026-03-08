@@ -1,7 +1,7 @@
 import React from "react";
 import { TouchableOpacity, Text, TouchableOpacityProps } from "react-native";
 import { LucideIcon } from "lucide-react-native";
-import theme from "../utils/theme";
+import { useTheme } from "../utils/ThemeContext";
 import clsx from "clsx";
 
 interface ActionButtonProps extends TouchableOpacityProps {
@@ -15,6 +15,7 @@ const ActionButton = ({
   className,
   ...props
 }: ActionButtonProps) => {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       className={clsx(
@@ -24,7 +25,7 @@ const ActionButton = ({
       activeOpacity={0.7}
       {...props}
     >
-      <Icon size={20} color={theme.colors.primary} />
+      <Icon size={20} color={colors.primary} />
       {label && (
         <Text className="font-medium text-[16px] text-primary">{label}</Text>
       )}

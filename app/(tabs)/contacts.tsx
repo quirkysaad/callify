@@ -12,11 +12,12 @@ import { Plus, Search, XCircle, BookUser } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { CallLogsModule } from "../../modules/dialer-module";
 import { useContacts } from "../../utils/AppProviders";
-import theme from "../../utils/theme";
+import { useTheme } from "../../utils/ThemeContext";
 import ContactItem from "../../components/ContactItem";
 
 function Contacts() {
   const { contacts, loading } = useContacts();
+  const { colors } = useTheme();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -93,18 +94,18 @@ function Contacts() {
         </Text>
         <View className="flex-row gap-4">
           <TouchableOpacity onPress={handleCreateContact}>
-            <Plus size={22} color={theme.colors.primary} />
+            <Plus size={22} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View className="px-5 pb-3">
         <View className="flex-row items-center bg-card rounded-xl px-4 py-2 border border-border">
-          <Search size={16} color={theme.colors.textSecondary} />
+          <Search size={16} color={colors.textSecondary} />
           <TextInput
             className="flex-1 ml-2 text-base text-textPrimary"
             placeholder="Search contacts..."
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -113,7 +114,7 @@ function Contacts() {
               onPress={() => setSearchQuery("")}
               className="p-1"
             >
-              <XCircle size={16} color={theme.colors.textSecondary} />
+              <XCircle size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -122,7 +123,7 @@ function Contacts() {
       <View className="flex-1">
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : contacts.length > 0 ? (
           <SectionList
@@ -151,7 +152,7 @@ function Contacts() {
           />
         ) : (
           <View className="flex-1 items-center justify-center">
-            <BookUser size={48} color={theme.colors.border} />
+            <BookUser size={48} color={colors.border} />
             <Text className="text-textSecondary text-[17px] mt-4 font-medium">
               {"No contacts found"}
             </Text>

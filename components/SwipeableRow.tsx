@@ -12,7 +12,7 @@ import Reanimated, {
   Extrapolation,
   SharedValue,
 } from "react-native-reanimated";
-import theme from "../utils/theme";
+import { useTheme } from "../utils/ThemeContext";
 import clsx from "clsx";
 
 interface SwipeableRowProps {
@@ -72,20 +72,23 @@ const RightAction = ({
 }: {
   isFirst?: boolean;
   isLast?: boolean;
-}) => (
-  <View
-    className={clsx(
-      "flex-row justify-end items-center gap-2 w-full h-full bg-message px-4",
-      {
-        "rounded-t-2xl": isFirst,
-        "rounded-b-2xl": isLast,
-      },
-    )}
-  >
-    <Text className="text-lg font-semibold text-white">{"Message"}</Text>
-    <MessageCircle size={22} color={theme.colors.white} />
-  </View>
-);
+}) => {
+  const { colors } = useTheme();
+  return (
+    <View
+      className={clsx(
+        "flex-row justify-end items-center gap-2 w-full h-full bg-message px-4",
+        {
+          "rounded-t-2xl": isFirst,
+          "rounded-b-2xl": isLast,
+        },
+      )}
+    >
+      <Text className="text-lg font-semibold text-white">{"Message"}</Text>
+      <MessageCircle size={22} color={colors.white} />
+    </View>
+  );
+};
 
 const LeftAction = ({
   isFirst,
@@ -93,20 +96,23 @@ const LeftAction = ({
 }: {
   isFirst?: boolean;
   isLast?: boolean;
-}) => (
-  <View
-    className={clsx(
-      "flex-row items-center gap-2 w-full h-full bg-success px-4",
-      {
-        "rounded-t-2xl": isFirst,
-        "rounded-b-2xl": isLast,
-      },
-    )}
-  >
-    <PhoneOutgoing size={22} color={theme.colors.white} />
-    <Text className="text-lg font-semibold text-white">{"Call"}</Text>
-  </View>
-);
+}) => {
+  const { colors } = useTheme();
+  return (
+    <View
+      className={clsx(
+        "flex-row items-center gap-2 w-full h-full bg-success px-4",
+        {
+          "rounded-t-2xl": isFirst,
+          "rounded-b-2xl": isLast,
+        },
+      )}
+    >
+      <PhoneOutgoing size={22} color={colors.white} />
+      <Text className="text-lg font-semibold text-white">{"Call"}</Text>
+    </View>
+  );
+};
 
 export const SwipeableRow = ({
   children,

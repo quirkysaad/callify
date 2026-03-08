@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Linking } from "react-native";
 import * as ContactsModule from "expo-contacts";
 import { User, Phone } from "lucide-react-native";
 import clsx from "clsx";
-import theme from "../utils/theme";
+import { useTheme } from "../utils/ThemeContext";
 import { SwipeableRow } from "./SwipeableRow";
 
 interface ContactItemProps {
@@ -26,6 +26,7 @@ const ContactItem = React.memo(
     className,
     swipeDisabled = false,
   }: ContactItemProps) => {
+    const { colors } = useTheme();
     const handleCall = useCallback(() => {
       const number = item.phoneNumbers?.[0]?.number;
       if (number) {
@@ -52,26 +53,26 @@ const ContactItem = React.memo(
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={onPress}
-          className={clsx(
-            "flex-row items-center border-b-[0.5px] border-border px-2 py-5 bg-card",
-            {
-              "rounded-t-2xl": index === 0,
-              "rounded-b-2xl": isLastLogOfSection,
-            },
-            className && className.includes("bg-") ? "" : "bg-card",
-          )}
+          style={{
+            backgroundColor: colors.card,
+            borderBottomColor: colors.border,
+          }}
+          className={clsx("flex-row items-center border-b-[0.5px] px-2 py-5", {
+            "rounded-t-2xl": index === 0,
+            "rounded-b-2xl": isLastLogOfSection,
+          })}
         >
           <View
             className="w-11 h-11 rounded-full mr-4 justify-center items-center"
-            style={{ backgroundColor: theme.colors.primaryLight }}
+            style={{ backgroundColor: colors.primaryLight }}
           >
-            <User size={20} color={theme.colors.primary} />
+            <User size={20} color={colors.primary} />
           </View>
           <View className="flex-1">
             <View className="flex-row items-center gap-[6px]">
               <Text
                 className="text-base font-medium"
-                style={{ color: theme.colors.textPrimary }}
+                style={{ color: colors.textPrimary }}
                 numberOfLines={1}
               >
                 {item.name || "No Name"}
@@ -92,7 +93,7 @@ const ContactItem = React.memo(
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               className="p-2 bg-primaryLight rounded-[20px] w-10 h-10 justify-center items-center"
             >
-              <Phone size={18} color={theme.colors.primary} />
+              <Phone size={18} color={colors.primary} />
             </TouchableOpacity>
           )}
         </TouchableOpacity>

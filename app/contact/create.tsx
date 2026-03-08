@@ -16,10 +16,11 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Contacts from "expo-contacts";
 import { ArrowLeft, User, PlusCircle, MinusCircle } from "lucide-react-native";
 import { useContacts } from "../../utils/AppProviders";
-import theme from "../../utils/theme";
+import { useTheme } from "../../utils/ThemeContext";
 
 export default function CreateContact() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { refresh } = useContacts();
   const { number } = useLocalSearchParams<{ number: string }>();
   const [firstName, setFirstName] = useState("");
@@ -93,7 +94,7 @@ export default function CreateContact() {
           onPress={() => router.back()}
           className="p-1 min-w-[60px]"
         >
-          <ArrowLeft size={20} color={theme.colors.textPrimary} />
+          <ArrowLeft size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-textPrimary">
           {"New Contact"}
@@ -125,7 +126,7 @@ export default function CreateContact() {
               entering={ZoomIn.delay(200).duration(400)}
               className="w-[90px] h-[90px] rounded-[45px] bg-primaryLight justify-center items-center"
             >
-              <User size={40} color={theme.colors.primary} />
+              <User size={40} color={colors.primary} />
             </Animated.View>
           </Animated.View>
 
@@ -139,7 +140,7 @@ export default function CreateContact() {
             <TextInput
               className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
               placeholder="First name"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={firstName}
               onChangeText={setFirstName}
               autoFocus
@@ -147,7 +148,7 @@ export default function CreateContact() {
             <TextInput
               className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
               placeholder="Last name"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={lastName}
               onChangeText={setLastName}
             />
@@ -162,7 +163,7 @@ export default function CreateContact() {
                 {"Phone"}
               </Text>
               <TouchableOpacity onPress={addPhone}>
-                <PlusCircle size={22} color={theme.colors.primary} />
+                <PlusCircle size={22} color={colors.primary} />
               </TouchableOpacity>
             </View>
             {phones.map((phone, index) => (
@@ -170,7 +171,7 @@ export default function CreateContact() {
                 <TextInput
                   className="flex-1 border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
                   placeholder="Phone number"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                   value={phone.number}
                   onChangeText={(v) => updatePhone(index, v)}
                   keyboardType="phone-pad"
@@ -180,7 +181,7 @@ export default function CreateContact() {
                     onPress={() => removePhone(index)}
                     className="p-2"
                   >
-                    <MinusCircle size={20} color={theme.colors.danger} />
+                    <MinusCircle size={20} color={colors.danger} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -197,7 +198,7 @@ export default function CreateContact() {
             <TextInput
               className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
               placeholder="Email address"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"

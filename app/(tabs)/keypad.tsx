@@ -13,7 +13,7 @@ import ActionButton from "../../components/ActionButton";
 import { CallLogsModule } from "../../modules/dialer-module";
 import { useContacts } from "../../utils/AppProviders";
 import { searchContactsT9 } from "../../utils/t9-search";
-import theme from "../../utils/theme";
+import { useTheme } from "../../utils/ThemeContext";
 import ContactItem from "../../components/ContactItem";
 
 const padRows = [
@@ -41,6 +41,7 @@ const padRows = [
 
 function KeypadScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [phoneNumber, setPhoneNumber] = useState("");
   const { contacts } = useContacts();
 
@@ -163,7 +164,7 @@ function KeypadScreen() {
               activeOpacity={0.7}
               className="bg-success rounded-full w-[70px] h-[70px] justify-center items-center"
               style={{
-                shadowColor: theme.colors.primary,
+                shadowColor: colors.primary,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
@@ -171,7 +172,7 @@ function KeypadScreen() {
               }}
               onPress={dialNumber}
             >
-              <Phone size={36} color={theme.colors.white} />
+              <Phone size={36} color={colors.white} />
             </TouchableOpacity>
 
             {/* Delete Digit Icon */}
@@ -181,7 +182,7 @@ function KeypadScreen() {
                 onLongPress={handleLongBackspace}
                 className="w-[70px] h-[70px] justify-center items-center"
               >
-                <Delete size={26} color={theme.colors.textPrimary} />
+                <Delete size={26} color={colors.textPrimary} />
               </TouchableOpacity>
             ) : (
               <View className="w-[70px]" />

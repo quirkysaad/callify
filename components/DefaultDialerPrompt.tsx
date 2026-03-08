@@ -8,9 +8,10 @@ import {
 } from "react-native";
 import { PhoneCall } from "lucide-react-native";
 import { CallLogsModule } from "../modules/dialer-module";
-import theme from "../utils/theme";
+import { useTheme } from "../utils/ThemeContext";
 
 const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
+  const { colors } = useTheme();
   const [isDefault, setIsDefault] = useState<boolean | null>(null);
 
   const checkDefault = async () => {
@@ -61,13 +62,13 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
   return (
     <View
       className="flex-1 items-center justify-center p-8"
-      style={{ backgroundColor: theme.colors.background }}
+      style={{ backgroundColor: colors.background }}
     >
       <View
         className="items-center justify-center w-24 h-24 rounded-full mb-8"
-        style={{ backgroundColor: theme.colors.card }}
+        style={{ backgroundColor: colors.card }}
       >
-        <PhoneCall size={48} color={theme.colors.primary} />
+        <PhoneCall size={48} color={colors.primary} />
       </View>
       <Text className="text-2xl font-bold text-center mb-4 text-white">
         Default Phone App
@@ -80,7 +81,7 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
       <TouchableOpacity
         onPress={handleRequest}
         className="w-full py-4 rounded-xl flex-row items-center justify-center"
-        style={{ backgroundColor: theme.colors.primary }}
+        style={{ backgroundColor: colors.primary }}
       >
         <Text className="text-white font-bold text-lg">Set as Default</Text>
       </TouchableOpacity>

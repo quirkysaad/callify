@@ -26,13 +26,14 @@ import {
 } from "lucide-react-native";
 import { CallLogsModule } from "../../modules/dialer-module";
 import { useContacts, useRecents } from "../../utils/AppProviders";
-import theme from "../../utils/theme";
+import { useTheme } from "../../utils/ThemeContext";
 import { CallLogProps, CallSectionProps } from "../../types";
 import CallLog from "../../components/CallLog";
 import { groupCallsByDate } from "../../utils/general-utils";
 
 export default function ContactDetail() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { refresh } = useContacts();
   const [contact, setContact] = useState<Contacts.Contact | null>(null);
@@ -197,7 +198,7 @@ export default function ContactDetail() {
   if (loading) {
     return (
       <View className="flex-1 bg-background justify-center items-center pt-[StatusBar.currentHeight || 0]">
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -219,7 +220,7 @@ export default function ContactDetail() {
           onPress={() => router.back()}
           className="p-1 min-w-[60px]"
         >
-          <ArrowLeft size={20} color={theme.colors.textPrimary} />
+          <ArrowLeft size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-textPrimary">
           {editing ? "Edit Contact" : "Contact"}
@@ -263,7 +264,7 @@ export default function ContactDetail() {
               entering={ZoomIn.delay(200).duration(400)}
               className="w-[90px] h-[90px] rounded-[45px] bg-primaryLight justify-center items-center"
             >
-              <User size={40} color={theme.colors.primary} />
+              <User size={40} color={colors.primary} />
             </Animated.View>
             {!editing ? (
               <>
@@ -276,14 +277,14 @@ export default function ContactDetail() {
                 <TextInput
                   className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
                   placeholder="First name"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                   value={firstName}
                   onChangeText={setFirstName}
                 />
                 <TextInput
                   className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
                   placeholder="Last name"
-                  placeholderTextColor={theme.colors.textSecondary}
+                  placeholderTextColor={colors.textSecondary}
                   value={lastName}
                   onChangeText={setLastName}
                 />
@@ -301,7 +302,7 @@ export default function ContactDetail() {
                 className="w-[80px] h-[70px] rounded-2xl bg-primaryLight justify-center items-center gap-[6px]"
                 onPress={() => handleCall(phones[0]?.number)}
               >
-                <Phone size={20} color={theme.colors.primary} />
+                <Phone size={20} color={colors.primary} />
                 <Text className="text-xs text-textSecondary font-medium">
                   {"Call"}
                 </Text>
@@ -320,7 +321,7 @@ export default function ContactDetail() {
               </Text>
               {editing ? (
                 <TouchableOpacity onPress={addPhone}>
-                  <PlusCircle size={22} color={theme.colors.primary} />
+                  <PlusCircle size={22} color={colors.primary} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -330,7 +331,7 @@ export default function ContactDetail() {
                     <TextInput
                       className="flex-1 border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
                       placeholder="Phone number"
-                      placeholderTextColor={theme.colors.textSecondary}
+                      placeholderTextColor={colors.textSecondary}
                       value={phone.number}
                       onChangeText={(v) => updatePhone(index, v)}
                       keyboardType="phone-pad"
@@ -340,7 +341,7 @@ export default function ContactDetail() {
                         onPress={() => removePhone(index)}
                         className="p-2"
                       >
-                        <MinusCircle size={20} color={theme.colors.danger} />
+                        <MinusCircle size={20} color={colors.danger} />
                       </TouchableOpacity>
                     ) : null}
                   </View>
@@ -359,7 +360,7 @@ export default function ContactDetail() {
                         {phone.number}
                       </Text>
                     </View>
-                    <Phone size={18} color={theme.colors.primary} />
+                    <Phone size={18} color={colors.primary} />
                   </TouchableOpacity>
                 ))}
           </Animated.View>
@@ -373,7 +374,7 @@ export default function ContactDetail() {
               <TextInput
                 className="border border-border rounded-xl px-4 py-[14px] text-base text-textPrimary mb-2.5 bg-card"
                 placeholder="Email address"
-                placeholderTextColor={theme.colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -398,7 +399,7 @@ export default function ContactDetail() {
               className="mb-6"
             >
               <View className="flex-row items-center gap-2 mb-3">
-                <History size={16} color={theme.colors.textSecondary} />
+                <History size={16} color={colors.textSecondary} />
                 <Text className="text-sm font-semibold text-textSecondary uppercase tracking-[0.5px]">
                   {"Call History"}
                 </Text>
@@ -444,10 +445,10 @@ export default function ContactDetail() {
           <Animated.View entering={FadeInDown.delay(400).duration(400)}>
             <TouchableOpacity
               className="flex-row items-center justify-center gap-2 py-[14px] rounded-xl mt-4"
-              style={{ backgroundColor: theme.colors.danger + "22" }}
+              style={{ backgroundColor: colors.danger + "22" }}
               onPress={handleDelete}
             >
-              <Trash size={18} color={theme.colors.danger} />
+              <Trash size={18} color={colors.danger} />
               <Text className="text-base font-medium text-danger">
                 {"Delete Contact"}
               </Text>

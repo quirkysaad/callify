@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -10,13 +10,16 @@ import CallLog from "../../components/CallLog";
 import { Search, MoreVertical, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useRecents, useContacts } from "../../utils/AppProviders";
-import theme from "../../utils/theme";
+import { useTheme } from "../../utils/ThemeContext";
 import { CallLogProps } from "../../types";
+import AppDrawer from "../../components/AppDrawer";
 
 const Home = () => {
   const router = useRouter();
   const { sections, loading, loadMore, hasMore } = useRecents();
   const { contacts } = useContacts();
+  const { colors } = useTheme();
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   const handlePress = useCallback(
     (item: CallLogProps) => {
@@ -45,10 +48,10 @@ const Home = () => {
     if (!hasMore) return null;
     return (
       <View className="py-5 items-center">
-        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [hasMore]);
+  }, [hasMore, colors]);
 
   return (
     <>
@@ -58,10 +61,10 @@ const Home = () => {
         </Text>
         <View className="flex-row gap-4">
           <TouchableOpacity>
-            <Search size={22} color={theme.colors.primary} />
+            <Search size={22} color={colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity>
-            <MoreVertical size={22} color={theme.colors.primary} />
+          <TouchableOpacity onPress={() => setDrawerVisible(true)}>
+            <MoreVertical size={22} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -69,7 +72,7 @@ const Home = () => {
       <View className="flex-1 pt-2">
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : sections.length > 0 ? (
           <SectionList
@@ -99,13 +102,18 @@ const Home = () => {
           />
         ) : (
           <View className="flex-1 items-center justify-center">
-            <Clock size={48} color={theme.colors.border} />
+            <Clock size={48} color={colors.border} />
             <Text className="text-textSecondary text-[17px] mt-4 font-medium">
               {"No recent calls"}
             </Text>
           </View>
         )}
       </View>
+
+      <AppDrawer
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+      />
     </>
   );
 };

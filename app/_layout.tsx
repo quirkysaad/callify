@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -6,31 +6,34 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 import CallScreen from "../components/CallScreen";
 import DefaultDialerPrompt from "../components/DefaultDialerPrompt";
-import { CallLogsModule } from "../modules/dialer-module";
 import {
   ContactsProvider,
   RecentsProvider,
   CallStateProvider,
 } from "../utils/AppProviders";
-import theme from "../utils/theme";
+import { ThemeProvider, useTheme } from "../utils/ThemeContext";
 
-const RootLayout = () => {
+const LayoutContent = () => {
+  const { colors, isDark } = useTheme();
+
   return (
-    <SafeAreaProvider>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ContactsProvider>
           <RecentsProvider>
             <CallStateProvider>
               <DefaultDialerPrompt>
-                <View
-                  style={{ flex: 1, backgroundColor: theme.colors.background }}
-                >
+                <View style={{ flex: 1 }}>
                   <Stack
                     screenOptions={{
                       headerShown: false,
                       contentStyle: {
                         flex: 1,
-                        backgroundColor: theme.colors.background,
+                        backgroundColor: colors.background,
                       },
                       animation: "none",
                     }}
@@ -44,6 +47,16 @@ const RootLayout = () => {
           </RecentsProvider>
         </ContactsProvider>
       </GestureHandlerRootView>
+    </View>
+  );
+};
+
+const RootLayout = () => {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <LayoutContent />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 };
