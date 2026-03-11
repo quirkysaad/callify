@@ -86,17 +86,17 @@ const CallScreen = () => {
   const handleAnswer = useCallback(() => {
     try {
       CallLogsModule.answerCall?.();
-    } catch (_e) {}
+    } catch (_e) { }
   }, []);
   const handleReject = useCallback(() => {
     try {
       CallLogsModule.rejectCall?.();
-    } catch (_e) {}
+    } catch (_e) { }
   }, []);
   const handleEndCall = useCallback(() => {
     try {
       CallLogsModule.disconnectCall?.();
-    } catch (_e) {}
+    } catch (_e) { }
   }, []);
 
   const handleToggleMute = useCallback(() => {
@@ -104,7 +104,7 @@ const CallScreen = () => {
     setIsMuted(newMuted);
     try {
       CallLogsModule.toggleMute?.(newMuted);
-    } catch (_e) {}
+    } catch (_e) { }
   }, [isMuted]);
 
   const handleToggleSpeaker = useCallback(() => {
@@ -112,20 +112,20 @@ const CallScreen = () => {
     setIsSpeaker(newSpeaker);
     try {
       CallLogsModule.toggleSpeaker?.(newSpeaker);
-    } catch (_e) {}
+    } catch (_e) { }
   }, [isSpeaker]);
 
   const handleToggleHold = useCallback(() => {
     const isOnHold = callState?.state === 3;
     try {
       CallLogsModule.toggleHold?.(!isOnHold);
-    } catch (_e) {}
+    } catch (_e) { }
   }, [callState?.state]);
 
   const handleMerge = useCallback(() => {
     try {
       CallLogsModule.mergeCalls?.();
-    } catch (_e) {}
+    } catch (_e) { }
   }, []);
 
   const [lastDigit, setLastDigit] = useState<string | null>(null);
@@ -142,7 +142,7 @@ const CallScreen = () => {
 
     try {
       CallLogsModule.sendDtmf?.(digit);
-    } catch (_e) {}
+    } catch (_e) { }
   }, []);
 
   const handleBackspace = useCallback(() => {
@@ -406,7 +406,7 @@ const CallScreen = () => {
                 onPress={() => {
                   try {
                     CallLogsModule.moveTaskToBack?.();
-                  } catch (_e) {}
+                  } catch (_e) { }
                 }}
                 colors={colors}
               />
@@ -483,7 +483,7 @@ const CallScreen = () => {
                   onPress={() => {
                     try {
                       CallLogsModule.silenceRingtone?.();
-                    } catch (_e) {}
+                    } catch (_e) { }
                   }}
                 >
                   <BellOff size={24} color={colors.primary} />
@@ -610,7 +610,7 @@ const CallActionButton = ({
       opacity: disabled ? 0.3 : 1,
     }}
   >
-    <Icon size={18} color={active ? colors.white : colors.primary} />
+    <Icon size={18} color={active ? colors.primaryLight : colors.primary} />
     <Text
       style={{
         fontSize: 11,

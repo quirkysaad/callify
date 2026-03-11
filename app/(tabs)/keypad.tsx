@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import KeypadButton from "../../components/KeypadButton";
 import ActionButton from "../../components/ActionButton";
 import { CallLogsModule } from "../../modules/dialer-module";
-import { useContacts, useCallState } from "../../utils/AppProviders";
+import { useContacts, useCallState, useRecents } from "../../utils/AppProviders";
 import { searchContactsT9 } from "../../utils/t9-search";
 import { useTheme } from "../../utils/ThemeContext";
 import { useThemeDrawer } from "../../utils/ThemeDrawerContext";
@@ -53,10 +53,35 @@ function KeypadScreen() {
   const { colors } = useTheme();
   const { openDrawer } = useThemeDrawer();
 
+  const { rawLogs } = useRecents();
+
   const t9Results = useMemo(() => {
-    if (phoneNumber.length === 0) return [];
+    if (phoneNumber.length === 0) {
+      // Show Frequently Contacted (Favorites)
+      const counts: Record<string, number> = {};
+      rawLogs.forEach(log => {
+        const key = log.name || log.number;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      const sorted = Object.keys(counts)
+        .sort((a, b) => counts[b] - counts[a])
+        .slice(0, 3);
+
+      return sorted.map(key => {
+        const contact = contacts.find(c => c.name === key || c.phoneNumbers?.some(p => p.number === key));
+        if (contact) return { ...contact, isFavorite: true };
+
+        // If not in contacts, return a partial object
+        return {
+          name: key,
+          phoneNumbers: [{ number: key }],
+          isFavorite: true
+        } as any;
+      });
+    }
     return searchContactsT9(phoneNumber, contacts).slice(0, 5);
-  }, [phoneNumber, contacts]);
+  }, [phoneNumber, contacts, rawLogs]);
 
   const handlePress = useCallback((val: string) => {
     setPhoneNumber((prev) => prev + val);
@@ -115,6 +140,13 @@ function KeypadScreen() {
         </View>
 
         <View className="flex-1 w-full items-center justify-end flex-col">
+          {phoneNumber.length === 0 && t9Results.length > 0 && (
+            <View className="w-full px-6 mb-2">
+              <Text className="text-xs uppercase font-bold opacity-40" style={{ color: colors.textPrimary }}>
+                Frequently Contacted
+              </Text>
+            </View>
+          )}
           <ScrollView
             className="flex-1 flex-grow mb-2 w-full"
             showsVerticalScrollIndicator={false}
@@ -172,37 +204,37 @@ function KeypadScreen() {
           </View>
         </View>
 
-        <View className="w-[400px]">
-          {padRows.map((row, rowIndex) => (
-            <View className="flex-row justify-around items-center" key={rowIndex}>
-              {row.map((btn) => (
-                <View key={btn.number}>
-                  <KeypadButton
-                    number={btn.number}
-                    letters={btn.letters}
-                    onPress={handlePress}
-                    onLongPress={handleLongPress}
-                  />
-                </View>
-              ))}
+        <View className="w-4/5 flex-row flex-wrap justify-between">
+          {padRows.flat().map((btn) => (
+            <View key={btn.number} className="w-1/3 items-center">
+              <KeypadButton
+                number={btn.number}
+                letters={btn.letters}
+                onPress={handlePress}
+                onLongPress={handleLongPress}
+              />
             </View>
           ))}
 
-          <View className="relative mt-2 flex-row items-center justify-center w-full">
+          {/* Action Row (Call & Delete) */}
+          <View className="w-1/3" />
+          <View className="w-1/3 items-center justify-center py-2">
             <TouchableOpacity
               activeOpacity={0.7}
-              className="h-[70px] w-[70px] items-center justify-center rounded-full bg-success"
+              className="h-[75px] w-[75px] items-center justify-center rounded-full bg-success"
               onPress={dialNumber}
               onLongPress={__DEV__ ? handleMockCall : undefined}
             >
-              <Phone size={36} color={colors.white} />
+              <Phone size={34} color={colors.white} />
             </TouchableOpacity>
-
+          </View>
+          <View className="w-1/3 items-center justify-center">
             {phoneNumber.length > 0 && (
               <TouchableOpacity
                 onPress={handleBackspace}
                 onLongPress={handleLongBackspace}
-                className="absolute right-10 h-20 w-20 items-center justify-center"
+                activeOpacity={0.6}
+                className="h-20 w-20 items-center justify-center"
               >
                 <Delete size={28} color={colors.textPrimary} />
               </TouchableOpacity>

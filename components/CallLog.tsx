@@ -106,7 +106,8 @@ const CallLog = ({
       disabled={swipeDisabled}
     >
       <TouchableOpacity
-        activeOpacity={0.7}
+        activeOpacity={1}
+        delayPressIn={50}
         onPress={onPress}
         onLongPress={handleLongPress}
         className="flex-row items-center px-4 py-2.5"
@@ -129,10 +130,10 @@ const CallLog = ({
         <View className="mr-3.5 h-11 w-11 items-center justify-center rounded-full">
           <iconData.IconComponent color={iconData.color} size={22} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           <View className="flex-row items-center gap-[6px]">
             <Text
-              className="text-[17px] font-medium"
+              className="text-lg"
               style={{ color: colors.textPrimary }}
               numberOfLines={1}
             >

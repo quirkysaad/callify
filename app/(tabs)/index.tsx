@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import CallLog from "../../components/CallLog";
-import { Search, MoreVertical, Clock, Settings } from "lucide-react-native";
+import { Search, Clock, Settings } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useRecents, useContacts } from "../../utils/AppProviders";
 import { useTheme } from "../../utils/ThemeContext";
@@ -67,9 +67,6 @@ const Home = () => {
           {"Recents"}
         </Text>
         <View style={{ flexDirection: "row", gap: 16 }}>
-          <TouchableOpacity>
-            <Search size={22} color={colors.primary} />
-          </TouchableOpacity>
           <TouchableOpacity onPress={openDrawer}>
             <Settings size={22} color={colors.primary} />
           </TouchableOpacity>

@@ -22,6 +22,7 @@ import { useTheme, ThemeMode } from "../utils/ThemeContext";
 import { CallLogsModule } from "../modules/dialer-module";
 import { checkUpdate, openUpdateLink } from "../utils/updateChecker";
 import Constants from "expo-constants";
+import CustomModal from "./CustomModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.78;
@@ -63,6 +64,12 @@ const ThemeDrawer = ({ visible, onClose }: ThemeDrawerProps) => {
   const overlayOpacity = useSharedValue(0);
   const [shouldRender, setShouldRender] = React.useState(visible);
   const [isCheckingUpdate, setIsCheckingUpdate] = React.useState(false);
+  const [alertConfig, setAlertConfig] = React.useState<{
+    visible: boolean;
+    title: string;
+    description: string;
+    buttons: any[];
+  }>({ visible: false, title: '', description: '', buttons: [] });
   const appVersion = Constants.expoConfig?.version || "1.0.0";
 
   useEffect(() => {
@@ -105,19 +112,30 @@ const ThemeDrawer = ({ visible, onClose }: ThemeDrawerProps) => {
     try {
       const update = await checkUpdate();
       if (update && update.isNewer) {
-        Alert.alert(
-          "Update Available",
-          `Version ${update.version} is available. Would you like to update now?`,
-          [
-            { text: "Later", style: "cancel" },
-            { text: "Update Now", onPress: () => openUpdateLink(update.url) }
+        setAlertConfig({
+          visible: true,
+          title: "Update Available",
+          description: `Version ${update.version} is available. Would you like to update now?`,
+          buttons: [
+            { text: "Update Now", onPress: () => { openUpdateLink(update.url); setAlertConfig(p => ({ ...p, visible: false })); } },
+            { text: "Later", variant: 'secondary', onPress: () => setAlertConfig(p => ({ ...p, visible: false })) }
           ]
-        );
+        });
       } else {
-        Alert.alert("Up to Date", `Shizn is already running the latest version (${appVersion}).`);
+        setAlertConfig({
+          visible: true,
+          title: "Up to Date",
+          description: `Shizn is already running the latest version (${appVersion}).`,
+          buttons: [{ text: "Awesome", onPress: () => setAlertConfig(p => ({ ...p, visible: false })) }]
+        });
       }
     } catch (error) {
-      Alert.alert("Error", "Could not check for updates. Please check your internet connection.");
+      setAlertConfig({
+        visible: true,
+        title: "Check Failed",
+        description: "Could not check for updates. Please check your internet connection.",
+        buttons: [{ text: "OK", onPress: () => setAlertConfig(p => ({ ...p, visible: false })) }]
+      });
     } finally {
       setIsCheckingUpdate(false);
     }
@@ -139,6 +157,13 @@ const ThemeDrawer = ({ visible, onClose }: ThemeDrawerProps) => {
         zIndex: 9998,
       }}
     >
+      <CustomModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        description={alertConfig.description}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig(p => ({ ...p, visible: false }))}
+      />
       {/* Overlay */}
       <Animated.View
         style={[

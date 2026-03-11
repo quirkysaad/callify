@@ -3,6 +3,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, BackHandler } from 're
 import { checkUpdate, ReleaseInfo, openUpdateLink } from '../utils/updateChecker';
 import { useTheme } from '../utils/ThemeContext';
 import { Download, X } from 'lucide-react-native';
+import CustomModal from './CustomModal';
 
 const UpdatePrompt = () => {
     const [release, setRelease] = useState<ReleaseInfo | null>(null);
@@ -23,50 +24,36 @@ const UpdatePrompt = () => {
     if (!release || !visible) return null;
 
     return (
-        <Modal
-            transparent
+        <CustomModal
             visible={visible}
-            animationType="fade"
-            onRequestClose={() => setVisible(false)}
+            onClose={() => setVisible(false)}
+            title="New Update Available"
+            buttons={[
+                {
+                    text: "Update Now",
+                    onPress: () => {
+                        openUpdateLink(release.url);
+                        setVisible(false);
+                    }
+                }
+            ]}
         >
-            <View style={styles.overlay}>
-                <View style={[styles.container, { backgroundColor: colors.card }]}>
-                    <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.textPrimary }]}>New Update Available</Text>
-                        <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeButton}>
-                            <X size={20} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                    </View>
+            <Text style={[styles.version, { color: colors.success }]}>
+                Version {release.version} is now available!
+            </Text>
 
-                    <Text style={[styles.version, { color: colors.success }]}>
-                        Version {release.version} is now available!
-                    </Text>
-
-                    {release.notes && (
-                        <View style={styles.notesContainer}>
-                            <Text style={[styles.notesLabel, { color: colors.textPrimary }]}>What's New:</Text>
-                            <Text
-                                style={[styles.notes, { color: colors.textSecondary }]}
-                                numberOfLines={6}
-                            >
-                                {release.notes}
-                            </Text>
-                        </View>
-                    )}
-
-                    <TouchableOpacity
-                        style={[styles.updateButton, { backgroundColor: colors.primary }]}
-                        onPress={() => {
-                            openUpdateLink(release.url);
-                            setVisible(false);
-                        }}
+            {release.notes && (
+                <View style={styles.notesContainer}>
+                    <Text style={[styles.notesLabel, { color: colors.textPrimary }]}>What's New:</Text>
+                    <Text
+                        style={[styles.notes, { color: colors.textSecondary }]}
+                        numberOfLines={6}
                     >
-                        <Download size={18} color={colors.background} style={{ marginRight: 8 }} />
-                        <Text style={[styles.updateButtonText, { color: colors.background }]}>Update Now</Text>
-                    </TouchableOpacity>
+                        {release.notes}
+                    </Text>
                 </View>
-            </View>
-        </Modal>
+            )}
+        </CustomModal>
     );
 };
 

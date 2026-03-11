@@ -313,6 +313,21 @@ class CallModule : Module() {
       activity?.moveTaskToBack(true)
     }
 
+    Function("showWhenLocked") { show: Boolean ->
+      val activity = appContext.currentActivity
+      if (activity != null) {
+        try {
+          // Use reflection to call the method to avoid circular dependency
+          val method = activity.javaClass.getMethod("showWhenLocked", Boolean::class.javaPrimitiveType)
+          activity.runOnUiThread {
+            method.invoke(activity, show)
+          }
+        } catch (e: Exception) {
+          // Method not found or other reflection error
+        }
+      }
+    }
+
     OnCreate {
       CallManager.listener = { call ->
         if (call == null) {

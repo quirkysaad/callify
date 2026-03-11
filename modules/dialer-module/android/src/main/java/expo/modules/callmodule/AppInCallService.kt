@@ -180,28 +180,34 @@ class AppInCallService : InCallService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NotificationManager::class.java)
 
-            // High priority channel for heads-up and lock screen
+            // v7: Fresh channel with explicit sound and vibration
+            // Vibration is often the missing key for HUD/Popups on modern Android
             val channelHigh = NotificationChannel(
-                "incoming_call_channel_v4",
+                "incoming_call_channel_v7",
                 "Incoming Calls",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications for incoming phone calls"
+                description = "High priority notifications for incoming calls"
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                setSound(null, null) // System silent, we play our own
-                enableVibration(false)
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 1000, 1000) // 1s vibrate, 1s rest
+                
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .build()
+                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), audioAttributes)
             }
             notificationManager.createNotificationChannel(channelHigh)
 
-            // Low priority channel for when app is already open
             val channelLow = NotificationChannel(
                 "incoming_call_channel_silent",
                 "Incoming Calls (Silent)",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Silent notifications for when app is open"
+                description = "Silent notifications for background updates"
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                setSound(null, null) // System silent, we play our own
+                setSound(null, null)
                 enableVibration(false)
             }
             notificationManager.createNotificationChannel(channelLow)
@@ -212,7 +218,8 @@ class AppInCallService : InCallService() {
         createNotificationChannels()
 
         val isInForeground = isAppInForeground()
-        val channelId = if (isInForeground) "incoming_call_channel_silent" else "incoming_call_channel_v4"
+        // Force the high-priority v7 channel for Hud behavior
+        val channelId = if (isInForeground) "incoming_call_channel_silent" else "incoming_call_channel_v7"
         val number = call.details?.handle?.schemeSpecificPart ?: "Unknown"
         val packageName = applicationContext.packageName
 
@@ -248,31 +255,37 @@ class AppInCallService : InCallService() {
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         val isLocked = (getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked
 
+        // Person object for CallStyle
+        val caller = androidx.core.app.Person.Builder()
+            .setName(number)
+            .setImportant(true)
+            .build()
+
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setContentTitle("Incoming Call")
-            .setContentText(number)
-            .setPriority(if (isInForeground) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setPriority(NotificationCompat.PRIORITY_MAX) 
+            .setColor(android.graphics.Color.parseColor("#4CAF50"))
             .setContentIntent(fullScreenPendingIntent)
-            .addAction(0, "Accept", acceptPendingIntent)
-            .addAction(0, "Decline", rejectPendingIntent)
-
-        // Only attach fullScreenIntent if the app is NOT in the foreground
-        if (!isInForeground) {
-            notificationBuilder.setFullScreenIntent(fullScreenPendingIntent, true)
-        }
+            // fullScreenIntent with highPriority=true is required for HUD peak
+            .setFullScreenIntent(fullScreenPendingIntent, true) 
+            .setStyle(
+                NotificationCompat.CallStyle.forIncomingCall(
+                    caller,
+                    rejectPendingIntent,
+                    acceptPendingIntent
+                )
+            )
 
         val notification = notificationBuilder.build()
 
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.notify(NOTIFICATION_ID, notification)
-        Log.d(TAG, "Incoming call notification shown for $number. isInForeground=$isInForeground")
+        Log.d(TAG, "Incoming call notification shown (v7 HUD) for $number. isInForeground=$isInForeground")
         
-        // Safety net: if locked or screen off, try to manually launch the app just in case fullScreenIntent isn't enough
         if (isLocked || !powerManager.isInteractive) {
             CallManager.launchApp(applicationContext)
         }

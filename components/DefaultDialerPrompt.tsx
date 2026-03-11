@@ -11,9 +11,12 @@ import { PhoneCall } from "lucide-react-native";
 import { CallLogsModule } from "../modules/dialer-module";
 import { useTheme } from "../utils/ThemeContext";
 
+import CustomModal from "./CustomModal";
+
 const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
   const [isDefault, setIsDefault] = useState<boolean | null>(null);
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const [showHelp, setShowHelp] = useState(false);
 
   const checkDefault = async () => {
     try {
@@ -42,14 +45,19 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const [showHelp, setShowHelp] = useState(false);
-
   const handleRequest = async () => {
     try {
-      await CallLogsModule.requestDefaultDialer();
-      // On some Android 13+ devices, if restricted settings are on, 
-      // the prompt might not appear. We wait and check again.
-      setTimeout(checkDefault, 1000);
+      const result = await CallLogsModule.requestDefaultDialer();
+      if (!result) {
+        // If not immediately default, wait a bit and check
+        setTimeout(async () => {
+          const stillNotDefault = !(await CallLogsModule.isDefaultDialer());
+          if (stillNotDefault) {
+            // Likely restricted on Android 13+
+            setShowHelp(true);
+          }
+        }, 1000);
+      }
     } catch (e) {
       console.log("Error requesting default dialer", e);
       setShowHelp(true);
@@ -61,6 +69,60 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
   return (
     <View style={{ flex: 1 }}>
       {children}
+      <CustomModal
+        visible={showHelp}
+        animate={false}
+        onClose={() => setShowHelp(false)}
+        title="Restricted Settings"
+        description="Android 13+ occasionally blocks apps from becoming default dialers. Follow these quick steps to fix it:"
+        buttons={[
+          {
+            text: "1. Open App Info",
+            onPress: () => CallLogsModule.openAppSettings?.()
+          },
+          {
+            text: "Got it",
+            variant: "secondary",
+            onPress: () => setShowHelp(false)
+          }
+        ]}
+      >
+        <View className="mb-6 space-y-3">
+          <View className="flex-row items-start mb-2">
+            <View className="mr-3 h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+              <Text className="text-xs font-bold text-primary">1</Text>
+            </View>
+            <Text className="flex-1 text-sm leading-5" style={{ color: colors.textSecondary }}>
+              Tap <Text className="font-bold" style={{ color: colors.textPrimary }}>Open App Info</Text> above.
+            </Text>
+          </View>
+          <View className="flex-row items-start mb-2">
+            <View className="mr-3 h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+              <Text className="text-xs font-bold text-primary">2</Text>
+            </View>
+            <Text className="flex-1 text-sm leading-5" style={{ color: colors.textSecondary }}>
+              Tap the <Text className="font-bold" style={{ color: colors.textPrimary }}>⋮ menu</Text> (top right corner).
+            </Text>
+          </View>
+          <View className="flex-row items-start mb-2">
+            <View className="mr-3 h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+              <Text className="text-xs font-bold text-primary">3</Text>
+            </View>
+            <Text className="flex-1 text-sm leading-5" style={{ color: colors.textSecondary }}>
+              Select <Text className="font-bold" style={{ color: colors.textPrimary }}>Allow restricted settings</Text>.
+            </Text>
+          </View>
+          <View className="flex-row items-start">
+            <View className="mr-3 h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+              <Text className="text-xs font-bold text-primary">4</Text>
+            </View>
+            <Text className="flex-1 text-sm leading-5" style={{ color: colors.textSecondary }}>
+              Return here and tap <Text className="font-bold" style={{ color: colors.textPrimary }}>Set as Default</Text> again.
+            </Text>
+          </View>
+        </View>
+      </CustomModal>
+
       {!isDefault && (
         <View
           className="flex-1 items-center justify-center p-8"
@@ -71,79 +133,43 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
           }}
         >
           <View
-            className="mb-6 h-20 w-20 items-center justify-center rounded-[40px]"
-            style={{ backgroundColor: colors.successLight }}
+            className="mb-6 h-24 w-24 items-center justify-center rounded-[48px]"
+            style={{ backgroundColor: colors.success + '15' }}
           >
-            <PhoneCall size={40} color={colors.success} />
+            <PhoneCall size={48} color={colors.success} />
           </View>
           <Text
-            className="mb-3 text-center text-2xl font-bold"
+            className="mb-4 text-center text-3xl font-extrabold tracking-tight"
             style={{ color: colors.textPrimary }}
           >
             Default Phone App
           </Text>
           <Text
-            className="mb-8 text-center text-base"
-            style={{ color: colors.textSecondary }}
+            className="mb-10 text-center text-base leading-6"
+            style={{ color: colors.textSecondary, paddingHorizontal: 10 }}
           >
-            Shizn needs to be your default phone app to make and receive calls,
-            and to show your call history.
+            To securely manage your calls and provide high-quality service, Shizn needs to be set as your primary dialer.
           </Text>
 
           <TouchableOpacity
             onPress={handleRequest}
-            className="w-full flex-row items-center justify-center rounded-xl py-4"
-            style={{ backgroundColor: colors.success, marginBottom: 16 }}
+            activeOpacity={0.8}
+            className="w-full h-16 flex-row items-center justify-center rounded-2xl shadow-lg"
+            style={{ backgroundColor: colors.success, shadowColor: colors.success }}
           >
             <Text className="text-lg font-bold" style={{ color: colors.white }}>
               Set as Default
             </Text>
           </TouchableOpacity>
 
-          {!showHelp ? (
-            <TouchableOpacity onPress={() => setShowHelp(true)}>
-              <Text style={{ color: colors.textSecondary, textDecorationLine: 'underline' }}>
-                Having trouble setting it?
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <View
-              style={{
-                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-                padding: 16,
-                borderRadius: 16,
-                width: '100%'
-              }}
-            >
-              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
-                Android 13+ "Restricted Settings":
-              </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
-                1. Tap "Open App Info" below.{"\n"}
-                2. Tap the ⋮ menu (top right).{"\n"}
-                3. Select "Allow restricted settings".{"\n"}
-                4. Come back and tap "Set as Default".
-              </Text>
-              <TouchableOpacity
-                onPress={() => CallLogsModule.openAppSettings?.()}
-                style={{
-                  marginTop: 12,
-                  padding: 12,
-                  backgroundColor: colors.primaryLight,
-                  borderRadius: 8,
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: '600' }}>Open App Info</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowHelp(false)}
-                style={{ marginTop: 12, alignItems: 'center' }}
-              >
-                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Hide help</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <TouchableOpacity
+            onPress={() => setShowHelp(true)}
+            className="mt-6 py-2"
+          >
+            <Text style={{ color: colors.textSecondary, opacity: 0.7, fontWeight: '600', textDecorationLine: 'underline' }}>
+              Having trouble setting it?
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>

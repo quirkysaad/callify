@@ -52,24 +52,25 @@ const ContactItem = React.memo(
         containerStyle={{ marginHorizontal: 8 }}
       >
         <TouchableOpacity
-          activeOpacity={0.7}
+          activeOpacity={1}
+          delayPressIn={50}
           onPress={onPress}
           className="flex-row items-center border-b px-2 py-5"
-          style={[
-            {
-              borderBottomColor: colors.border,
-              backgroundColor: colors.card,
-            },
-            index === 0 && {
+          style={{
+            backgroundColor: colors.card,
+            borderBottomColor: colors.border,
+            ...(index === 0 && {
               borderTopLeftRadius: 16,
               borderTopRightRadius: 16,
-            },
-            isLastLogOfSection && {
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 16,
-            },
-            containerStyle,
-          ]}
+            }),
+            ...(isLastLogOfSection
+              ? {
+                borderBottomLeftRadius: 16,
+                borderBottomRightRadius: 16,
+                borderBottomWidth: 0,
+              }
+              : { borderBottomWidth: 1 }),
+          }}
         >
           <View
             className="mr-4 h-11 w-11 items-center justify-center rounded-full"

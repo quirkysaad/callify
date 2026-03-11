@@ -21,7 +21,7 @@ type ContactsContextType = {
 const ContactsContext = createContext<ContactsContextType>({
   contacts: [],
   loading: true,
-  refresh: () => {},
+  refresh: () => { },
 });
 
 export const useContacts = () => useContext(ContactsContext);
@@ -82,6 +82,7 @@ export const ContactsProvider = ({
 
 // ---- Recents Context ----
 type RecentsContextType = {
+  rawLogs: CallLogProps[];
   sections: CallSectionProps[];
   loading: boolean;
   loadMore: () => void;
@@ -90,11 +91,12 @@ type RecentsContextType = {
 };
 
 const RecentsContext = createContext<RecentsContextType>({
+  rawLogs: [],
   sections: [],
   loading: true,
-  loadMore: () => {},
+  loadMore: () => { },
   hasMore: false,
-  refresh: () => {},
+  refresh: () => { },
 });
 
 export const useRecents = () => useContext(RecentsContext);
@@ -202,7 +204,7 @@ export const RecentsProvider = ({
 
   return (
     <RecentsContext.Provider
-      value={{ sections, loading, loadMore, hasMore, refresh }}
+      value={{ rawLogs, sections, loading, loadMore, hasMore, refresh }}
     >
       {children}
     </RecentsContext.Provider>
@@ -226,7 +228,7 @@ type CallStateContextType = {
 
 const CallStateContext = createContext<CallStateContextType>({
   callState: null,
-  setCallState: () => {},
+  setCallState: () => { },
 });
 
 export const useCallState = () => useContext(CallStateContext);
@@ -241,11 +243,11 @@ export const CallStateProvider = ({
 
   useEffect(() => {
     let mounted = true;
+    const { CallLogsModule } = require("../modules/dialer-module");
 
-    const checkCall = async () => {
+    const updateFromNative = async () => {
       if (isMocked.current) return;
       try {
-        const { CallLogsModule } = require("../modules/dialer-module");
         const activeCall = await CallLogsModule.getActiveCall?.();
         if (!mounted) return;
         if (activeCall && activeCall.state !== 7) {
@@ -253,24 +255,57 @@ export const CallStateProvider = ({
             if (
               prev?.state === activeCall.state &&
               prev?.number === activeCall.number &&
-              prev?.name === activeCall.name
+              prev?.name === activeCall.name &&
+              prev?.isMuted === activeCall.isMuted &&
+              prev?.audioRoute === activeCall.audioRoute
             )
               return prev;
             return activeCall;
           });
         } else {
-          setCallState((prev) => (prev === null ? prev : null));
+          setCallState(null);
         }
-      } catch (_e) {}
+      } catch (_e) {
+        console.log("Error checking active call:", _e);
+      }
     };
 
-    checkCall();
-    const interval = setInterval(checkCall, 2000);
+    // 1. Initial check
+    updateFromNative();
+
+    // 2. Listen for real-time state changes from native
+    const stateSub = CallLogsModule.addListener("onCallStateChanged", (event: any) => {
+      console.log("Call state changed event:", event);
+      updateFromNative(); // Fetch full details to ensure consistency
+    });
+
+    const endSub = CallLogsModule.addListener("onCallEnded", () => {
+      console.log("Call ended event");
+      if (mounted) setCallState(null);
+    });
+
+    // 3. Safety poll (less frequent) just in case an event is missed
+    const interval = setInterval(updateFromNative, 5000);
+
     return () => {
       mounted = false;
+      stateSub.remove();
+      endSub.remove();
       clearInterval(interval);
     };
   }, []);
+
+  // Synchronize lock screen visibility with call presence
+  useEffect(() => {
+    const { CallLogsModule } = require("../modules/dialer-module");
+    if (callState) {
+      console.log("Call active: Enabling show when locked");
+      CallLogsModule.showWhenLocked?.(true);
+    } else {
+      console.log("No call active: Disabling show when locked");
+      CallLogsModule.showWhenLocked?.(false);
+    }
+  }, [callState]);
 
   const handleSetCallState = (state: ActiveCallState) => {
     if (!__DEV__ && state !== null) return;

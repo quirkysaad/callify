@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#34C759"
       },
-      "package": "com.anonymous.callify",
+      "package": "com.quirkysaad.shizn",
       "permissions": [
         "android.permission.READ_CALL_LOG",
         "android.permission.WRITE_CALL_LOG",
