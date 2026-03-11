@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   Pressable,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -15,9 +17,11 @@ import Animated, {
   Extrapolation,
   runOnJS,
 } from "react-native-reanimated";
-import { Sun, Moon, Smartphone, Check, X } from "lucide-react-native";
+import { Sun, Moon, Smartphone, Check, X, RefreshCw, Info } from "lucide-react-native";
 import { useTheme, ThemeMode } from "../utils/ThemeContext";
 import { CallLogsModule } from "../modules/dialer-module";
+import { checkUpdate, openUpdateLink } from "../utils/updateChecker";
+import Constants from "expo-constants";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.78;
@@ -58,6 +62,8 @@ const ThemeDrawer = ({ visible, onClose }: ThemeDrawerProps) => {
   const translateX = useSharedValue(-DRAWER_WIDTH);
   const overlayOpacity = useSharedValue(0);
   const [shouldRender, setShouldRender] = React.useState(visible);
+  const [isCheckingUpdate, setIsCheckingUpdate] = React.useState(false);
+  const appVersion = Constants.expoConfig?.version || "1.0.0";
 
   useEffect(() => {
     if (visible) {
@@ -92,6 +98,29 @@ const ThemeDrawer = ({ visible, onClose }: ThemeDrawerProps) => {
 
   const handleSelect = (selectedMode: ThemeMode) => {
     setMode(selectedMode);
+  };
+
+  const handleManualUpdateCheck = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      const update = await checkUpdate();
+      if (update && update.isNewer) {
+        Alert.alert(
+          "Update Available",
+          `Version ${update.version} is available. Would you like to update now?`,
+          [
+            { text: "Later", style: "cancel" },
+            { text: "Update Now", onPress: () => openUpdateLink(update.url) }
+          ]
+        );
+      } else {
+        Alert.alert("Up to Date", `Shizn is already running the latest version (${appVersion}).`);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not check for updates. Please check your internet connection.");
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   };
 
   if (!shouldRender) {
@@ -324,22 +353,68 @@ const ThemeDrawer = ({ visible, onClose }: ThemeDrawerProps) => {
           </Text>
         </View>
 
-        {/* App Settings Button */}
-        <TouchableOpacity
-          onPress={() => CallLogsModule.openAppSettings?.()}
-          style={{
-            marginHorizontal: 16,
+        {/* Footer Actions */}
+        <View style={{ marginTop: 'auto', paddingBottom: 40 }}>
+          {/* App Settings Button */}
+          <TouchableOpacity
+            onPress={() => CallLogsModule.openAppSettings?.()}
+            style={{
+              marginHorizontal: 16,
+              marginTop: 16,
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: colors.primaryLight,
+              flexDirection: 'row',
+              alignItems: "center",
+              justifyContent: 'center'
+            }}
+          >
+            <Smartphone size={18} color={colors.primary} style={{ marginRight: 8 }} />
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              App Settings
+            </Text>
+          </TouchableOpacity>
+
+          {/* Check for Updates Button */}
+          <TouchableOpacity
+            onPress={handleManualUpdateCheck}
+            disabled={isCheckingUpdate}
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+              borderWidth: 1,
+              borderColor: colors.border,
+              flexDirection: 'row',
+              alignItems: "center",
+              justifyContent: 'center'
+            }}
+          >
+            {isCheckingUpdate ? (
+              <ActivityIndicator size="small" color={colors.textSecondary} />
+            ) : (
+              <>
+                <RefreshCw size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
+                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
+                  Check for Updates
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Version Info */}
+          <Text style={{
+            textAlign: 'center',
             marginTop: 16,
-            padding: 14,
-            borderRadius: 12,
-            backgroundColor: colors.primaryLight,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: colors.primary, fontWeight: "600" }}>
-            Open App Settings
+            fontSize: 12,
+            color: colors.textSecondary,
+            opacity: 0.6
+          }}>
+            Shizn v{appVersion}
           </Text>
-        </TouchableOpacity>
+        </View>
       </Animated.View>
 
     </View>

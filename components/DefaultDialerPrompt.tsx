@@ -13,7 +13,7 @@ import { useTheme } from "../utils/ThemeContext";
 
 const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
   const [isDefault, setIsDefault] = useState<boolean | null>(null);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const checkDefault = async () => {
     try {
@@ -42,12 +42,17 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  const [showHelp, setShowHelp] = useState(false);
+
   const handleRequest = async () => {
     try {
       await CallLogsModule.requestDefaultDialer();
+      // On some Android 13+ devices, if restricted settings are on, 
+      // the prompt might not appear. We wait and check again.
       setTimeout(checkDefault, 1000);
     } catch (e) {
       console.log("Error requesting default dialer", e);
+      setShowHelp(true);
     }
   };
 
@@ -66,19 +71,19 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
           }}
         >
           <View
-            className="mb-8 h-24 w-24 items-center justify-center rounded-[48px]"
+            className="mb-6 h-20 w-20 items-center justify-center rounded-[40px]"
             style={{ backgroundColor: colors.successLight }}
           >
-            <PhoneCall size={48} color={colors.success} />
+            <PhoneCall size={40} color={colors.success} />
           </View>
           <Text
-            className="mb-4 text-center text-2xl font-bold"
+            className="mb-3 text-center text-2xl font-bold"
             style={{ color: colors.textPrimary }}
           >
             Default Phone App
           </Text>
           <Text
-            className="mb-10 text-center text-base"
+            className="mb-8 text-center text-base"
             style={{ color: colors.textSecondary }}
           >
             Shizn needs to be your default phone app to make and receive calls,
@@ -88,12 +93,57 @@ const DefaultDialerPrompt = ({ children }: { children: React.ReactNode }) => {
           <TouchableOpacity
             onPress={handleRequest}
             className="w-full flex-row items-center justify-center rounded-xl py-4"
-            style={{ backgroundColor: colors.success }}
+            style={{ backgroundColor: colors.success, marginBottom: 16 }}
           >
             <Text className="text-lg font-bold" style={{ color: colors.white }}>
               Set as Default
             </Text>
           </TouchableOpacity>
+
+          {!showHelp ? (
+            <TouchableOpacity onPress={() => setShowHelp(true)}>
+              <Text style={{ color: colors.textSecondary, textDecorationLine: 'underline' }}>
+                Having trouble setting it?
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View
+              style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                padding: 16,
+                borderRadius: 16,
+                width: '100%'
+              }}
+            >
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
+                Android 13+ "Restricted Settings":
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
+                1. Tap "Open App Info" below.{"\n"}
+                2. Tap the ⋮ menu (top right).{"\n"}
+                3. Select "Allow restricted settings".{"\n"}
+                4. Come back and tap "Set as Default".
+              </Text>
+              <TouchableOpacity
+                onPress={() => CallLogsModule.openAppSettings?.()}
+                style={{
+                  marginTop: 12,
+                  padding: 12,
+                  backgroundColor: colors.primaryLight,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Open App Info</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowHelp(false)}
+                style={{ marginTop: 12, alignItems: 'center' }}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Hide help</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
     </View>

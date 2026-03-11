@@ -17,6 +17,7 @@ import {
   ThemeDrawerProvider,
   useThemeDrawer,
 } from "../utils/ThemeDrawerContext";
+import UpdatePrompt from "../components/UpdatePrompt";
 
 const AppLayer = () => {
   const { colors, isDark } = useTheme();
@@ -53,6 +54,7 @@ const AppLayer = () => {
         </RecentsProvider>
       </ContactsProvider>
 
+      <UpdatePrompt />
       <ThemeDrawer visible={drawerVisible} onClose={closeDrawer} />
     </View>
   );
