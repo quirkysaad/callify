@@ -22,9 +22,9 @@ module.exports = function withAndroidDialer(config) {
       manifest.$["xmlns:tools"] = "http://schemas.android.com/tools";
     }
 
-    // Ensure MainActivity shows on lock screen
-    mainActivity.$["android:showWhenLocked"] = "true";
-    mainActivity.$["android:turnScreenOn"] = "true";
+    // Ensure MainActivity shows on lock screen only when requested dynamically
+    mainActivity.$["android:showWhenLocked"] = "false";
+    mainActivity.$["android:turnScreenOn"] = "false";
 
     // 2. Add Dialer Intent Filters to MainActivity
     if (!mainActivity["intent-filter"]) {
@@ -83,6 +83,13 @@ module.exports = function withAndroidDialer(config) {
 
     // 2b. Add autoRevokePermissions to mainApplication to prevent pausing app activity
     mainApplication.$["android:autoRevokePermissions"] = "disallowed";
+    if (mainApplication.$["tools:replace"]) {
+      if (!mainApplication.$["tools:replace"].includes("android:autoRevokePermissions")) {
+        mainApplication.$["tools:replace"] += ",android:autoRevokePermissions";
+      }
+    } else {
+      mainApplication.$["tools:replace"] = "android:autoRevokePermissions";
+    }
 
     // 3. Ensure AppInCallService is correctly overridden
     if (!mainApplication.service) mainApplication.service = [];

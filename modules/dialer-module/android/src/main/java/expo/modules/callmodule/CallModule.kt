@@ -24,7 +24,7 @@ class CallModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("CallModule")
 
-    Events("onCallStateChanged", "onCallEnded")
+    Events("onCallStateChanged", "onCallEnded", "onPermissionResult")
 
     // Ask for READ_CALL_LOG permission
     AsyncFunction("requestCallLogPermission") { promise: Promise ->
@@ -382,6 +382,15 @@ class CallModule : Module() {
            sendEvent("onCallStateChanged", statusMap)
         }
       }
+    }
+    OnActivityResult { _, payload ->
+      val (requestCode, resultCode, data) = payload
+      // Send event for any activity result (e.g., Default Dialer role changes)
+      sendEvent("onPermissionResult", mapOf(
+        "type" to "activity",
+        "requestCode" to requestCode,
+        "resultCode" to resultCode
+      ))
     }
   }
 }

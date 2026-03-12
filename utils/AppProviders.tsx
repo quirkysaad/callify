@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { AppState } from "react-native";
 import * as ContactsModule from "expo-contacts";
 import { CallLogProps } from "../types";
 import { groupCallsByDate } from "../utils/general-utils";
@@ -67,6 +68,24 @@ export const ContactsProvider = ({
     if (loaded.current) return;
     loaded.current = true;
     fetchContacts(true);
+  }, [fetchContacts]);
+
+  useEffect(() => {
+    const { CallLogsModule } = require("../modules/dialer-module");
+    const sub = CallLogsModule.addListener("onPermissionResult", (event: any) => {
+      // If we got some result for permissions, try to fetch
+      console.log("Contacts permission result:", event);
+      fetchContacts(false);
+    });
+    const appStateSub = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        fetchContacts(false);
+      }
+    });
+    return () => {
+      sub.remove();
+      appStateSub.remove();
+    };
   }, [fetchContacts]);
 
   const refresh = useCallback(() => {
@@ -163,7 +182,20 @@ export const RecentsProvider = ({
         fetchInitial(false);
       }, 2000);
     });
-    return () => subscription.remove();
+    const permSub = CallLogsModule.addListener("onPermissionResult", (event: any) => {
+      console.log("Recents permission result:", event);
+      fetchInitial(false);
+    });
+    const appStateSub = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        fetchInitial(false);
+      }
+    });
+    return () => {
+      subscription.remove();
+      permSub.remove();
+      appStateSub.remove();
+    };
   }, [fetchInitial]);
 
   const refresh = useCallback(() => {
